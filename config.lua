@@ -4,7 +4,7 @@ Config.Framework = Config.Framework or 'auto'
 -- valid values: 'auto', 'qbox', 'qbcore', 'esx'
 
 Config.General = {
-    Debug = false,
+    Debug = true, -- TEMP: tracar fluxo de criacao (editor de aparencia nao abre). Voltar p/ false depois.
     --- Should match the number of scene ped slots (visual lineup positions).
     MaxCharacters = 3,
     DefaultSlots = 3,
@@ -73,7 +73,7 @@ Config.CharacterCreation = {
     --- apartment flow. Only `qbx_properties` is integrated out of the box.
     --- Set to '' (empty string) or false to force the no-apartment flow
     --- regardless of which resources are running.
-    apartmentResource = 'qbx_properties',
+    apartmentResource = '', -- Sem qbx_properties neste servidor: '' força o fluxo aparência→spawn-picker.
     --- Which apartment index to use as the starter when `directToApartment`
     --- is true AND `apartmentResource` is running. See that resource's
     --- `config/shared.lua` (`apartmentOptions`) — 1 = Del Perro Heights by
@@ -113,7 +113,7 @@ Config.Debug = Config.General.Debug
 --- All diag log lines are prefixed `[w2f-multicharacter][stream-debug]`.
 -----------------------------------------------------------------------------
 Config.DebugStreaming = false
-Config.DebugSceneSafeMode = false
+Config.DebugSceneSafeMode = false       -- void resolvido (era aust_banking), debug desligado.
 Config.DebugDisableBuckets = false
 Config.DebugDisablePreviewEmotes = false
 Config.DebugExteriorScene = false

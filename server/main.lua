@@ -606,18 +606,18 @@ end)
 local creatingLicenses = {}
 
 local function withLicenseLock(license, timeoutSec, fn)
-    timeoutSec = timeoutSec or 5
-    local lockName = ('w2fmc_%s'):format(license)
-    --- `GET_LOCK` is per-connection; oxmysql multiplexes connections so this
-    --- is best-effort. We additionally rely on the UNIQUE INDEX below.
-    local got = MySQL.scalar.await('SELECT GET_LOCK(?, ?)', { lockName, timeoutSec })
-    if got ~= 1 then
-        return fn(false)
-    end
-    local ok, a, b = pcall(fn, true)
-    MySQL.scalar.await('SELECT RELEASE_LOCK(?)', { lockName })
-    if not ok then error(a) end
-    return a, b
+    --- [FIX 2026-06-11] REMOVIDO o GET_LOCK/RELEASE_LOCK de MySQL.
+    --- Motivo: GET_LOCK é per-CONEXÃO e o oxmysql multiplexa conexões do pool —
+    --- o RELEASE_LOCK caía numa conexão diferente da que adquiriu, o lock VAZAVA
+    --- e nunca soltava. Toda criação seguinte travava os 5s inteiros do timeout do
+    --- GET_LOCK ("took 5011ms to execute a query") antes de seguir lockless, e o
+    --- stall cascateava nos watchdogs do fluxo de aparência (ped preso no default).
+    --- A proteção real contra race de slot já existe e é mais confiável:
+    ---   1. `creatingLicenses[license]` (set process-local, mesmo estado Lua) — barra
+    ---      criação concorrente da mesma license antes mesmo de chamar aqui.
+    ---   2. UNIQUE INDEX (license, cid) no banco — última linha de defesa no INSERT.
+    --- Então rodamos direto, sem o lock de DB.
+    return fn(true)
 end
 
 lib.callback.register('w2f-multicharacter:server:createCharacter', function(source, payload)
