@@ -737,6 +737,12 @@ lib.callback.register('w2f-multicharacter:server:createCharacter', function(sour
                 { cid = cid, name = ('%s %s'):format(result.firstname, result.lastname) })
         end
 
+        if GetResourceState('vp_whitelist') == 'started' then
+            pcall(function()
+                exports['vp_whitelist']:RegisterNewCharacter(citizenid, license or license2 or 'unknown', result)
+            end)
+        end
+
         --- Mark the new character as the active selection in the session so
         --- subsequent requestSpawn / canClaimApartment calls accept it
         --- without a separate selectCharacter round-trip.
@@ -1235,6 +1241,22 @@ lib.callback.register('w2f-multicharacter:server:selectCharacter', function(sour
         return false
     end
 
+    if GetResourceState('vp_whitelist') == 'started' then
+        local approved, status, details = exports['vp_whitelist']:IsCharacterApproved(citizenid)
+        if not approved then
+            TriggerClientEvent('ox_lib:notify', source, {
+                type = 'error',
+                title = 'Personagem Bloqueado',
+                description = ('Status: %s. %s'):format(
+                    tostring(status):upper(),
+                    details or 'Aguarde aprovação da staff para jogar.'
+                ),
+                duration = 8000
+            })
+            return false
+        end
+    end
+
     s.selectedCitizenid = citizenid
 
     if W2F.Database then
@@ -1400,6 +1422,14 @@ lib.callback.register('w2f-multicharacter:server:requestSpawn', function(source,
     if s.selectedCitizenid ~= citizenid then
         if Config.Debug then print(('[w2f-multicharacter] requestSpawn denied selected mismatch src=%s'):format(source)) end
         return nil
+    end
+
+    if GetResourceState('vp_whitelist') == 'started' then
+        local approved, status = exports['vp_whitelist']:IsCharacterApproved(citizenid)
+        if not approved then
+            if Config.Debug then print(('[w2f-multicharacter] requestSpawn denied whitelist src=%s citizenid=%s status=%s'):format(source, tostring(citizenid), tostring(status))) end
+            return nil
+        end
     end
 
     if W2F.Database then
