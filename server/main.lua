@@ -1030,51 +1030,76 @@ end)
 --- table that qbx itself would (properties, bank_accounts_new, playerskins,
 --- player_vehicles, player_groups, npwd_*, etc.) in the correct order.
 --- Falls back to a hard-coded list if the file can't be parsed.
+--- Loads qbx_core's characterDataTables list at runtime so we delete every
+--- table that qbx itself would (properties, bank_accounts_new, playerskins,
+--- player_vehicles, player_groups, npwd_*, etc.) in the correct order.
+--- Falls back to a hard-coded list if the file can't be parsed.
 local function getCharacterDataTables()
     local raw = LoadResourceFile('qbx_core', 'config/server.lua')
+    local tables
     if raw then
         local ok, cfg = pcall(function()
             local chunk = load(raw, '@qbx_core/config/server.lua')
             return chunk and chunk()
         end)
         if ok and type(cfg) == 'table' and type(cfg.characterDataTables) == 'table' then
-            return cfg.characterDataTables
+            tables = cfg.characterDataTables
         end
     end
-    return {
-        { 'properties', 'owner' },
-        { 'bank_accounts_new', 'id' },
-        { 'playerskins', 'citizenid' },
-        { 'player_mails', 'citizenid' },
-        { 'player_outfits', 'citizenid' },
-        { 'player_vehicles', 'citizenid' },
-        { 'player_groups', 'citizenid' },
-        { 'players', 'citizenid' },
-    }
+
+    if not tables then
+        tables = {
+            { 'properties', 'owner_citizenid' },
+            { 'bank_accounts_new', 'id' },
+            { 'playerskins', 'citizenid' },
+            { 'player_mails', 'citizenid' },
+            { 'player_outfits', 'citizenid' },
+            { 'player_vehicles', 'citizenid' },
+            { 'player_groups', 'citizenid' },
+            { 'players', 'citizenid' },
+        }
+    end
+
+    local normalized = {}
+    for i = 1, #tables do
+        local def = tables[i]
+        local tbl, col = def[1], def[2]
+        -- Harmoniza a coluna da tabela properties (schema ps-housing usa owner_citizenid)
+        if tbl == 'properties' and col == 'owner' then
+            col = 'owner_citizenid'
+        end
+        normalized[#normalized + 1] = { tbl, col }
+    end
+    return normalized
 end
 
 local function tableExists(name)
-    local row = MySQL.scalar.await(
-        'SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ? LIMIT 1',
-        { name }
-    )
-    return row ~= nil
+    local ok, row = pcall(function()
+        return MySQL.scalar.await(
+            'SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ? LIMIT 1',
+            { name }
+        )
+    end)
+    return ok and row ~= nil
 end
 
 local function deleteCharacterRows(citizenid)
     local tables = getCharacterDataTables()
-    local queries = {}
     for i = 1, #tables do
         local def = tables[i]
         local tableName, columnName = def[1], def[2]
         if tableExists(tableName) then
-            queries[#queries + 1] = {
-                query = ('DELETE FROM `%s` WHERE `%s` = ?'):format(tableName, columnName),
-                values = { citizenid },
-            }
+            pcall(function()
+                MySQL.query.await(('DELETE FROM `%s` WHERE `%s` = ?'):format(tableName, columnName), { citizenid })
+            end)
         end
     end
-    return MySQL.transaction.await(queries)
+    -- Assegura a remoção direta da linha mestre de players
+    pcall(function()
+        MySQL.query.await('DELETE FROM `players` WHERE `citizenid` = ?', { citizenid })
+    end)
+    local still = MySQL.scalar.await('SELECT 1 FROM `players` WHERE `citizenid` = ? LIMIT 1', { citizenid })
+    return still == nil
 end
 
 local function deleteCharacterFully(source, citizenid)
@@ -1105,7 +1130,23 @@ local function deleteCharacterFully(source, citizenid)
     end
 
     if not cleared then
-        cleared = deleteCharacterRows(citizenid) ~= false
+        cleared = deleteCharacterRows(citizenid)
+    end
+
+    --- Defesa em profundidade final: se players ainda persistir, executa cascade manual
+    local stillExists = MySQL.scalar.await('SELECT 1 FROM `players` WHERE `citizenid` = ? LIMIT 1', { citizenid })
+    if stillExists then
+        pcall(function()
+            MySQL.query.await('DELETE FROM `properties` WHERE `owner_citizenid` = ?', { citizenid })
+            MySQL.query.await('DELETE FROM `playerskins` WHERE `citizenid` = ?', { citizenid })
+            MySQL.query.await('DELETE FROM `player_vehicles` WHERE `citizenid` = ?', { citizenid })
+            MySQL.query.await('DELETE FROM `player_groups` WHERE `citizenid` = ?', { citizenid })
+            MySQL.query.await('DELETE FROM `players` WHERE `citizenid` = ?', { citizenid })
+        end)
+        stillExists = MySQL.scalar.await('SELECT 1 FROM `players` WHERE `citizenid` = ? LIMIT 1', { citizenid })
+        cleared = not stillExists
+    else
+        cleared = true
     end
 
     clearSelectedIf(source, citizenid)

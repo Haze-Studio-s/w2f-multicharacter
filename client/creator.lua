@@ -134,6 +134,10 @@ local function saveAppearanceThenFinish(appearance, cc, gender, coords, heading)
 
         if isNew and (preludeEnabled or arrivalEnabled) then
             local meta = W2F.State.pendingNewCharacterMeta or {}
+            if not meta.age and meta.birthdate then
+                local y = tonumber(tostring(meta.birthdate):match('^(%d%d%d%d)'))
+                if y then meta.age = math.max(18, 2026 - y) end
+            end
             -- Usa os coords temporários do slot visual como placeholder; o spawn
             -- final é decidido pelo GoDirectlyToSpawn (sky picker ou apartamento).
             -- O arrival.handBack chama GoDirectlyToSpawn após a cena.
@@ -147,10 +151,10 @@ local function saveAppearanceThenFinish(appearance, cc, gender, coords, heading)
             if preludeEnabled and W2F.Prelude and W2F.Prelude.Play then
                 -- Coleta dados do personagem para o cartão
                 local charMeta = {
-                    name        = (meta.firstname or '') .. ' ' .. (meta.lastname or ''),
-                    age         = meta.age,
-                    nationality = meta.nationality,
-                    arrivalId   = meta.arrivalId,
+                    name         = ((meta.firstname or '') .. ' ' .. (meta.lastname or '')):gsub('^%s+', ''):gsub('%s+$', ''),
+                    age          = meta.age or '—',
+                    nationality  = meta.nationality or 'American',
+                    arrivalId    = meta.arrivalId or 'none',
                     arrivalTitle = meta.arrivalTitle or locale('story.chapter_title') or 'Capítulo Final',
                     arrivalPlace = meta.arrivalPlace or 'Los Santos, San Andreas',
                 }
@@ -217,7 +221,7 @@ end
 --- on timeout. Now we return an explicit failure so the caller can recover.
 -----------------------------------------------------------------------------
 local function preparePlayerForCustomization(coords, heading, gender)
-    local model = (gender == 1) and `mp_f_freemode_01` or `mp_m_freemode_01`
+    local model = (gender == 1) and joaat('mp_f_freemode_01') or joaat('mp_m_freemode_01')
     if not lib.requestModel(model, 10000) then
         return false, nil, 'model_load_failed'
     end
@@ -280,10 +284,10 @@ local function preparePlayerForCustomization(coords, heading, gender)
     --- already the edited model, so re-applying neutral defaults would snap the
     --- just-edited face/body back to default before the editor reappears.
     if not hadModel then
-        if model == `mp_f_freemode_01` then
+        if model == joaat('mp_f_freemode_01') then
             SetPedDefaultComponentVariation(ped)
             SetPedHeadBlendData(ped, 45, 21, 0, 20, 15, 0, 0.3, 0.1, 0.0, false)
-        elseif model == `mp_m_freemode_01` then
+        elseif model == joaat('mp_m_freemode_01') then
             SetPedDefaultComponentVariation(ped)
             SetPedHeadBlendData(ped, 0, 0, 0, 0, 0, 0, 0.0, 0.0, 0.0, false)
         end
@@ -579,12 +583,23 @@ function W2F.Creator.StartPipeline(formData, visualSlot)
     W2F.State.isNewCharacter = true
     W2F.State.pendingVisualSlot = visualSlot
     W2F.State.autoSpawnAfterCreation = true
+    local function parseAge(birthdate)
+        if not birthdate or birthdate == '' then return nil end
+        local y = tonumber(tostring(birthdate):match('^(%d%d%d%d)'))
+        if y then return math.max(18, 2026 - y) end
+        return nil
+    end
+
     W2F.State.pendingNewCharacterMeta = {
-        citizenid = result.citizenid,
-        cid = result.cid,
-        firstname = result.firstname,
-        lastname = result.lastname,
-        gender = result.gender,
+        citizenid   = result.citizenid,
+        cid         = result.cid,
+        firstname   = result.firstname,
+        lastname    = result.lastname,
+        gender      = result.gender,
+        nationality = result.nationality or formData.nationality,
+        birthdate   = result.birthdate or formData.birthdate,
+        age         = parseAge(result.birthdate or formData.birthdate),
+        arrivalId   = result.arrivalId or formData.arrivalId or 'none',
     }
 
     if W2F.Nui and W2F.Nui.SendResult then
@@ -1073,11 +1088,12 @@ RegisterNUICallback('submitCreateCharacter', function(data, cb)
     --- NUI. The NUI's busy flag resets when it receives `createCharacterResult`.
     CreateThread(function()
         W2F.Creator.StartPipeline({
-            firstname = data.firstname,
-            lastname = data.lastname,
+            firstname   = data.firstname,
+            lastname    = data.lastname,
             nationality = data.nationality,
-            gender = tonumber(data.gender),
-            birthdate = data.birthdate,
+            gender      = tonumber(data.gender),
+            birthdate   = data.birthdate,
+            arrivalId   = data.arrivalId,
         }, slot)
     end)
 
