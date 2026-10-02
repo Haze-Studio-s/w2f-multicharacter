@@ -45,7 +45,39 @@ function W2F.Database.Log(license, citizenid, action, detail)
     end)
 end
 
+function W2F.Database.GetPlayerSlots(license)
+    if not license or license == '' then
+        return Config.General.DefaultSlots or 3
+    end
+    local row = MySQL.single.await('SELECT slots FROM w2f_multicharacter_slots WHERE license = ? LIMIT 1', { license })
+    if row and row.slots then
+        return tonumber(row.slots) or Config.General.DefaultSlots or 3
+    end
+    local defaultSlots = Config.General.DefaultSlots or 3
+    pcall(function()
+        MySQL.insert.await('INSERT INTO w2f_multicharacter_slots (license, slots) VALUES (?, ?) ON DUPLICATE KEY UPDATE slots = slots', { license, defaultSlots })
+    end)
+    return defaultSlots
+end
+
+function W2F.Database.SetPlayerSlots(license, slots)
+    if not license or not slots then return false end
+    local ok = pcall(function()
+        MySQL.query.await('INSERT INTO w2f_multicharacter_slots (license, slots) VALUES (?, ?) ON DUPLICATE KEY UPDATE slots = ?', { license, slots, slots })
+    end)
+    return ok
+end
+
 CreateThread(function()
     MySQL.ready.await()
+    pcall(function()
+        MySQL.query.await([[
+            CREATE TABLE IF NOT EXISTS `w2f_multicharacter_slots` (
+              `license` varchar(120) NOT NULL,
+              `slots` int(11) NOT NULL DEFAULT 3,
+              PRIMARY KEY (`license`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        ]])
+    end)
     W2F.Database.Verify()
 end)

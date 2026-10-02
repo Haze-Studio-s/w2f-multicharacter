@@ -197,3 +197,13 @@ SET @stmt := (
   )
 );
 PREPARE addLicCid FROM @stmt; EXECUTE addLicCid; DEALLOCATE PREPARE addLicCid;
+
+-- -----------------------------------------------------------------------------
+-- Dynamic Character Slots per Player (Prism Engineering Fusion)
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `w2f_multicharacter_slots` (
+  `license` varchar(255) NOT NULL,
+  `slots` int(11) NOT NULL DEFAULT 3,
+  PRIMARY KEY (`license`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+

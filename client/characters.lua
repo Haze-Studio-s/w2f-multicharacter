@@ -1123,6 +1123,26 @@ function W2F.Characters.FindPedNearRay(origin, direction)
     return bestSlot, bestEntry
 end
 
+--- Calcula idade precisa a partir da data de nascimento (YYYY-MM-DD)
+local function ConvertDateToAge(birthdate)
+    if not birthdate or type(birthdate) ~= 'string' then return nil end
+    local y, m, d = birthdate:match('^(%d%d%d%d)%-(%d%d)%-(%d%d)$')
+    if not y then
+        y, m, d = birthdate:match('^(%d%d%d%d)/(%d%d)/(%d%d)$')
+    end
+    if not y then return nil end
+
+    local by, bm, bd = tonumber(y), tonumber(m), tonumber(d)
+    if not by or not bm or not bd then return nil end
+
+    local now = os.date('*t')
+    local age = now.year - by
+    if now.month < bm or (now.month == bm and now.day < bd) then
+        age = age - 1
+    end
+    return math.max(0, age)
+end
+
 function W2F.Characters.GetDetailsPayload(character)
     if not character then return nil end
 
@@ -1142,6 +1162,9 @@ function W2F.Characters.GetDetailsPayload(character)
         end
     end
 
+    local age = ConvertDateToAge(charinfo.birthdate)
+    local phone = character.phone or charinfo.phone or metadata.phone or '—'
+
     return {
         citizenid = character.citizenid,
         name = ('%s %s'):format(charinfo.firstname or 'Unknown', charinfo.lastname or ''),
@@ -1151,6 +1174,11 @@ function W2F.Characters.GetDetailsPayload(character)
         playtime = W2F.FormatPlaytime(metadata.playtime or metadata.timeplayed or 0),
         lastLocation = lastLabel,
         slot = character.cid or character.slot,
+        phone = phone,
+        age = age,
+        birthdate = charinfo.birthdate,
+        gender = tonumber(charinfo.gender) == 1 and 'Feminino' or 'Masculino',
+        nationality = charinfo.nationality or 'American',
     }
 end
 

@@ -18,6 +18,8 @@ const dom = {
     dossierJob: document.getElementById('dossierJob'),
     dossierCash: document.getElementById('dossierCash'),
     dossierBank: document.getElementById('dossierBank'),
+    dossierPhone: document.getElementById('dossierPhone'),
+    dossierAge: document.getElementById('dossierAge'),
     dossierPlaytime: document.getElementById('dossierPlaytime'),
     dossierLocation: document.getElementById('dossierLocation'),
 
@@ -234,6 +236,8 @@ function applyDossierData(data) {
 
     dom.dossierCash.textContent = formatMoney(data.cash);
     dom.dossierBank.textContent = formatMoney(data.bank);
+    dom.dossierPhone.textContent = data.phone || '—';
+    dom.dossierAge.textContent = data.age !== null && data.age !== undefined ? `${data.age} anos` : '—';
     dom.dossierPlaytime.textContent = data.playtime || '0h 0m';
     dom.dossierLocation.textContent = data.lastLocation || 'Los Santos';
 }

@@ -241,6 +241,7 @@ end
 
 function W2F.Camera.Destroy()
     if W2F.Camera.handle and DoesCamExist(W2F.Camera.handle) then
+        pcall(StopCamShaking, W2F.Camera.handle, true)
         RenderScriptCams(false, true, 500, true, true)
         DestroyCam(W2F.Camera.handle, false)
     end
@@ -720,9 +721,17 @@ function W2F.Camera.FocusOnPed(ped)
     --- Subtle "zoom in" while selected, without moving the locked overview cam.
     local focusFov = focus.fov or 35.0
     W2F.Camera.targetFov = W2F.Clamp(focusFov, 28.0, W2F.Camera.baseFov)
+
+    --- Cinematografia orgânica do Prism: micro hand-shake suave durante inspeção
+    if W2F.Camera.handle and DoesCamExist(W2F.Camera.handle) then
+        pcall(ShakeCam, W2F.Camera.handle, 'HAND_SHAKE', 0.12)
+    end
 end
 
 function W2F.Camera.ReturnToOverview()
+    if W2F.Camera.handle and DoesCamExist(W2F.Camera.handle) then
+        pcall(StopCamShaking, W2F.Camera.handle, true)
+    end
     W2F.Camera.focalTarget = getOverviewFocal()
     --- Camera never moved, so no orbit reset needed — just restore the focal
     --- target so it tracks the ped centroid again.

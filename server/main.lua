@@ -199,7 +199,12 @@ local function decodeField(value)
     return value
 end
 
-local function mapRow(row, index)
+local function mapRow(row, index, src)
+    local phone = nil
+    if W2F.Phone and W2F.Phone.GetNumber then
+        phone = W2F.Phone.GetNumber(src, row.citizenid)
+    end
+
     return {
         citizenid = row.citizenid,
         cid = row.cid or index,
@@ -209,6 +214,7 @@ local function mapRow(row, index)
         metadata = decodeField(row.metadata) or {},
         position = decodeField(row.position),
         gang = decodeField(row.gang),
+        phone = phone,
         lastLoggedOut = tonumber(row.lastLoggedOutUnix) or 0,
     }
 end
@@ -285,9 +291,17 @@ local function isValidDate(yyyy, mm, dd)
     return true
 end
 
-local function getMaxCharacterSlots()
+local function getMaxCharacterSlots(license)
     local sceneSlots = Config.Scene and Config.Scene.pedSlots and #Config.Scene.pedSlots or 0
-    local configured = Config.MaxCharacters or Config.General.MaxCharacters or sceneSlots
+    local configured = Config.MaxCharacters or (Config.General and Config.General.MaxCharacters) or sceneSlots
+    
+    if license and W2F.Database and W2F.Database.GetPlayerSlots then
+        local playerSlots = W2F.Database.GetPlayerSlots(license)
+        if playerSlots and playerSlots > 0 then
+            configured = playerSlots
+        end
+    end
+
     if sceneSlots > 0 and configured > sceneSlots then
         return sceneSlots
     end
@@ -416,7 +430,7 @@ end
 --- Query all authenticated license identifiers, including equivalent
 --- `license:`/`license2:` variants, so the lineup matches what qbx_core may
 --- have stored in `players.license` during character creation.
-local function fetchCharactersByLicense(license, license2)
+local function fetchCharactersByLicense(license, license2, src)
     local identifiers = getLicenseIdentifierSet(license, license2)
     local licenseWhere = buildLicenseWhere(identifiers)
     if not licenseWhere then return {} end
@@ -431,7 +445,7 @@ local function fetchCharactersByLicense(license, license2)
     local list = {}
     for i = 1, #rows do
         local slot = rows[i].cid or i
-        list[slot] = mapRow(rows[i], slot)
+        list[slot] = mapRow(rows[i], slot, src)
     end
     return list
 end
@@ -525,7 +539,7 @@ lib.callback.register('w2f-multicharacter:server:getCharacters', function(source
     if not rateLimit(source, 'getCharacters') then return {} end
     local license, license2 = getPlayerLicenses(source)
     if not license and not license2 then return {} end
-    return fetchCharactersByLicense(license, license2)
+    return fetchCharactersByLicense(license, license2, source)
 end)
 
 lib.callback.register('w2f-multicharacter:server:getSlotSummary', function(source)
@@ -537,8 +551,8 @@ lib.callback.register('w2f-multicharacter:server:getSlotSummary', function(sourc
         return { maxSlots = 0, used = 0, slots = {} }
     end
 
-    local characters = fetchCharactersByLicense(license, license2)
-    local maxSlots = getMaxCharacterSlots()
+    local characters = fetchCharactersByLicense(license, license2, source)
+    local maxSlots = getMaxCharacterSlots(license or license2)
     local ordered = {}
     for cid = 1, maxSlots do
         local character = characters[cid]
@@ -654,8 +668,8 @@ lib.callback.register('w2f-multicharacter:server:createCharacter', function(sour
 
     local createdOk, createdErr, createdMeta
     local runOk, runErr = pcall(withLicenseLock, primaryLicense, 5, function(_locked)
-        local characters = fetchCharactersByLicense(license, license2)
-        local maxSlots = getMaxCharacterSlots()
+        local characters = fetchCharactersByLicense(license, license2, source)
+        local maxSlots = getMaxCharacterSlots(primaryLicense)
         local cid = findNextAvailableCid(characters, maxSlots)
         if not cid then
             createdOk, createdErr = false, 'No character slots available.'
@@ -1495,3 +1509,78 @@ end)
 exports('GetSelectedCitizenid', function(src)
     return session[src] and session[src].selectedCitizenid or nil
 end)
+
+--- Export to get a player's allowed slots
+exports('GetPlayerSlots', function(srcOrLicense)
+    local license = type(srcOrLicense) == 'number' and getPlayerLicense(srcOrLicense) or srcOrLicense
+    return getMaxCharacterSlots(license)
+end)
+
+--- Export to set a player's allowed slots
+exports('SetPlayerSlots', function(srcOrLicense, slots)
+    local license = type(srcOrLicense) == 'number' and getPlayerLicense(srcOrLicense) or srcOrLicense
+    if not license or not W2F.Database or not W2F.Database.SetPlayerSlots then return false end
+    return W2F.Database.SetPlayerSlots(license, slots)
+end)
+
+--- Administrative command: /setslot <target_id> <slots>
+lib.addCommand('setslot', {
+    help = 'Definir quantidade máxima de slots de personagem para um jogador',
+    params = {
+        {
+            name = 'target',
+            type = 'playerId',
+            help = 'ID do jogador no servidor',
+        },
+        {
+            name = 'slots',
+            type = 'number',
+            help = 'Quantidade de slots (ex: 1 a 10)',
+        },
+    },
+    restricted = 'group.admin',
+}, function(source, args)
+    local targetSrc = args.target
+    local slots = math.floor(args.slots or 0)
+    local maxAllowed = (Config.Scene and Config.Scene.pedSlots and #Config.Scene.pedSlots) or 10
+
+    if slots < 1 or slots > maxAllowed then
+        TriggerClientEvent('ox_lib:notify', source, {
+            type = 'error',
+            title = 'Multicharacter',
+            description = ('Quantidade de slots inválida! Deve ser entre 1 e %d.'):format(maxAllowed),
+        })
+        return
+    end
+
+    local license = getPlayerLicense(targetSrc)
+    if not license then
+        TriggerClientEvent('ox_lib:notify', source, {
+            type = 'error',
+            title = 'Multicharacter',
+            description = 'Não foi possível encontrar a licença do jogador alvo.',
+        })
+        return
+    end
+
+    local ok = W2F.Database.SetPlayerSlots(license, slots)
+    if ok then
+        TriggerClientEvent('ox_lib:notify', source, {
+            type = 'success',
+            title = 'Multicharacter',
+            description = ('Slots atualizados com sucesso para %d para o ID %s.'):format(slots, targetSrc),
+        })
+        TriggerClientEvent('ox_lib:notify', targetSrc, {
+            type = 'inform',
+            title = 'Multicharacter',
+            description = ('Seus slots de personagens foram alterados para %d pelo administrador.'):format(slots),
+        })
+    else
+        TriggerClientEvent('ox_lib:notify', source, {
+            type = 'error',
+            title = 'Multicharacter',
+            description = 'Erro ao persistir os slots no banco de dados.',
+        })
+    end
+end)
+

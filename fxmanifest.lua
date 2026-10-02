@@ -50,6 +50,7 @@ server_scripts {
     '@oxmysql/lib/MySQL.lua',
     'server/framework.lua',
     'server/database.lua',
+    'server/phone.lua',
     'server/main.lua',
 }
 
