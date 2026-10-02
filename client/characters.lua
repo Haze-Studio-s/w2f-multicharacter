@@ -1128,21 +1128,36 @@ function W2F.Characters.FindPedNearRay(origin, direction)
     return bestSlot, bestEntry
 end
 
---- Calcula idade precisa a partir da data de nascimento (YYYY-MM-DD)
+--- Calcula idade precisa a partir da data de nascimento (YYYY-MM-DD ou DD/MM/YYYY)
 local function ConvertDateToAge(birthdate)
     if not birthdate or type(birthdate) ~= 'string' then return nil end
     local y, m, d = birthdate:match('^(%d%d%d%d)%-(%d%d)%-(%d%d)$')
     if not y then
         y, m, d = birthdate:match('^(%d%d%d%d)/(%d%d)/(%d%d)$')
     end
+    if not y then
+        d, m, y = birthdate:match('^(%d%d)%-(%d%d)%-(%d%d%d%d)$')
+    end
+    if not y then
+        d, m, y = birthdate:match('^(%d%d)/(%d%d)/(%d%d%d%d)$')
+    end
     if not y then return nil end
 
     local by, bm, bd = tonumber(y), tonumber(m), tonumber(d)
     if not by or not bm or not bd then return nil end
 
-    local now = os.date('*t')
-    local age = now.year - by
-    if now.month < bm or (now.month == bm and now.day < bd) then
+    local curYear, curMonth, curDay = 2026, 1, 1
+    if GetLocalTime then
+        local yVal, mVal, _, dVal = GetLocalTime()
+        if yVal and yVal > 2000 then
+            curYear = yVal
+            curMonth = mVal or 1
+            curDay = dVal or 1
+        end
+    end
+
+    local age = curYear - by
+    if curMonth < bm or (curMonth == bm and curDay < bd) then
         age = age - 1
     end
     return math.max(0, age)
