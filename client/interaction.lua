@@ -174,8 +174,7 @@ function W2F.Interaction.HandleClick()
     end
 
     local camDragEnabled = Config.CameraControl.enabled == true
-    local useMouseDown = not camDragEnabled and Config.Interaction.selectOnMouseDown ~= false
-    local clicked = useMouseDown and wasLeftClickPressed() or wasLeftClickReleased()
+    local clicked = wasLeftClickPressed() or wasLeftClickReleased()
 
     if not clicked or not W2F.CanClick() then
         return
@@ -199,9 +198,6 @@ function W2F.Interaction.HandleClick()
         elseif entry.character and W2F.State.selectedPed ~= entry.ped then
             W2F.Characters.SelectSlot(slot, entry)
         end
-    elseif W2F.State.detailsVisible then
-        W2F.MarkClick()
-        W2F.Characters.ClearSelection()
     end
 
     W2F.State.hasDraggedCamera = false
@@ -308,20 +304,32 @@ function W2F.Interaction.StartLoop()
     end)
 end
 
-RegisterNUICallback('selectCharacterPed', function(data, cb)
-    if W2F.State.isCreatePanelOpen then
+RegisterNUICallback('clickWorld', function(data, cb)
+    if W2F.State.isCreatePanelOpen or W2F.State.isCreatingCharacter then
         cb('ok')
         return
     end
-    local slot = tonumber(data and data.slot)
-    if slot then
-        local entry = W2F.State.previewPeds[slot]
-        if entry and W2F.CanClick() then
-            if entry.isEmpty then
-                W2F.Characters.OpenCreateForSlot(slot)
-            elseif entry.character then
-                W2F.Characters.SelectSlot(slot, entry)
-            end
+    if not W2F.Session.Is('selection') then
+        cb('ok')
+        return
+    end
+    if W2F.State.isIntroPlaying or W2F.State.isDraggingCamera then
+        cb('ok')
+        return
+    end
+
+    local cx = data and tonumber(data.x)
+    local cy = data and tonumber(data.y)
+    local slot, entry = W2F.Characters.FindPedAtCursor(cx, cy)
+    if not slot or not entry then
+        slot, entry = pickPedThisFrame()
+    end
+
+    if slot and entry then
+        if entry.isEmpty then
+            W2F.Characters.OpenCreateForSlot(slot)
+        elseif entry.character and W2F.State.selectedPed ~= entry.ped then
+            W2F.Characters.SelectSlot(slot, entry)
         end
     end
     cb('ok')

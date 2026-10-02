@@ -989,19 +989,24 @@ end
 --- Picks the best ped under the cursor using screen-space distance to several
 --- body sample points (head / chest / torso). Sticky hover prevents flicker
 --- when moving between adjacent lineup peds.
-function W2F.Characters.FindPedAtCursor()
+function W2F.Characters.FindPedAtCursor(customX, customY)
     local interaction = Config.Interaction
-    local cursorX, cursorY = GetNuiCursorPosition()
     local resX, resY = GetActiveScreenResolution()
     if not resX or resX == 0 then resX, resY = 1920, 1080 end
-    --- Cursor coords of 0 are LEGITIMATE (top-left of the screen). Treat
-    --- only nil as missing — the old `<= 0` check would silently snap the
-    --- cursor to the center whenever the player picked the upper-left ped.
+
+    local cursorX = customX
+    local cursorY = customY
+    if cursorX == nil or cursorY == nil then
+        local nx, ny = GetNuiCursorPosition()
+        cursorX = cursorX or nx
+        cursorY = cursorY or ny
+    end
+
     if cursorX == nil then cursorX = resX * 0.5 end
     if cursorY == nil then cursorY = resY * 0.5 end
 
     local heights = (W2F.Performance and W2F.Performance.PedSampleHeights and W2F.Performance.PedSampleHeights())
-        or interaction.pedSampleHeights or { 0.68, 1.05 }
+        or interaction.pedSampleHeights or { 0.35, 0.68, 1.05 }
     local stickiness = interaction.hoverStickiness or 0.68
     local currentHovered = W2F.State.hoveredPed
 
@@ -1021,8 +1026,8 @@ function W2F.Characters.FindPedAtCursor()
         local ped = entry.ped
         if ped and DoesEntityExist(ped) then
             local radius = entry.isEmpty
-                and (interaction.pedSelectScreenRadiusEmpty or interaction.pedSelectScreenRadius or 240)
-                or (interaction.pedSelectScreenRadius or 240)
+                and (interaction.pedSelectScreenRadiusEmpty or 380)
+                or (interaction.pedSelectScreenRadius or 340)
 
             local pedCoords = GetEntityCoords(ped)
             local minDist = nil
@@ -1182,21 +1187,23 @@ function W2F.Characters.GetDetailsPayload(character)
     }
 end
 
-function W2F.Characters.SelectSlot(slot, entry)
+function W2F.Characters.SelectSlot(slot, entry, force)
     if W2F.State.isCreatePanelOpen or W2F.State.isCreatingCharacter then
         return
     end
     if not entry or not entry.character then return end
-    if W2F.State.selectedSlot == slot and W2F.State.selectedPed == entry.ped then
+    if not force and W2F.State.selectedSlot == slot and W2F.State.selectedPed == entry.ped then
         return
     end
     --- Debounce at entry, not after server accept, so a fat-finger double-
     --- click doesn't fire two callbacks and inflate the rate-limit budget.
-    if not W2F.CanClick() then return end
+    if not force and not W2F.CanClick() then return end
     W2F.MarkPedClick()
 
     local citizenid = entry.character.citizenid
     local payload = W2F.Characters.GetDetailsPayload(entry.character)
+    if not payload then return end
+    payload.slot = slot
 
     --- Optimistic client feedback — don't wait on the server round-trip.
     W2F.PlayW2FSound(Config.Audio.select)
@@ -1218,6 +1225,53 @@ function W2F.Characters.SelectSlot(slot, entry)
     end
 
     W2F.PlayW2FSound(Config.Audio.detailsOpen)
+end
+
+--- Seleciona automaticamente o primeiro personagem ativo ou o último jogado
+function W2F.Characters.AutoSelectDefault()
+    if W2F.State.selectedSlot ~= nil then return true end
+
+    local targetSlot = nil
+    local targetEntry = nil
+
+    -- 1. Prioriza o último personagem jogado
+    local lastCid = W2F.Characters.lastPlayedCitizenid
+    if lastCid then
+        for slot, entry in pairs(W2F.State.previewPeds) do
+            if entry and entry.character and entry.character.citizenid == lastCid then
+                targetSlot = slot
+                targetEntry = entry
+                break
+            end
+        end
+    end
+
+    -- 2. Se não achou, pega o primeiro slot ocupado em ordem numérica
+    if not targetSlot then
+        local maxVisual = #Config.Scene.pedSlots
+        for i = 1, maxVisual do
+            local entry = W2F.State.previewPeds[i]
+            if entry and entry.character then
+                targetSlot = i
+                targetEntry = entry
+                break
+            end
+        end
+    end
+
+    if targetSlot and targetEntry then
+        W2F.Characters.SelectSlot(targetSlot, targetEntry, true)
+        return true
+    end
+
+    -- 3. Se todos os slots forem vazios (conta nova), abre criação no slot 1
+    local firstEntry = W2F.State.previewPeds[1]
+    if firstEntry and firstEntry.isEmpty then
+        W2F.Characters.OpenCreateForSlot(1)
+        return true
+    end
+
+    return false
 end
 
 function W2F.Characters.ClearSelection()

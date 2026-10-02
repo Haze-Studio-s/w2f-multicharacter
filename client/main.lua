@@ -284,31 +284,37 @@ function W2F.EnterSelection(reason)
                 maxSlots = #Config.Scene.pedSlots,
                 showControlHints = Config.UI.showControlHints,
             }
-        local function pushCharactersList(chars)
+        local function pushCharactersList()
             local list = {}
-            if type(chars) == 'table' then
-                for i = 1, #Config.Scene.pedSlots do
-                    local char = chars[i]
-                    if char then
-                        local cinfo = char.charinfo or {}
-                        local job = char.job or {}
-                        list[i] = {
-                            slot = i,
-                            name = ('%s %s'):format(cinfo.firstname or 'Cidadão', cinfo.lastname or ''),
-                            citizenid = char.citizenid,
-                            job = job.label or job.name or 'Desempregado',
-                        }
-                    end
+            local maxSlots = #Config.Scene.pedSlots
+            for i = 1, maxSlots do
+                local entry = W2F.State.previewPeds[i]
+                if entry and entry.character then
+                    local char = entry.character
+                    local cinfo = char.charinfo or {}
+                    local job = char.job or {}
+                    list[i] = {
+                        slot = i,
+                        name = ('%s %s'):format(cinfo.firstname or 'Cidadão', cinfo.lastname or ''),
+                        citizenid = char.citizenid,
+                        job = job.label or job.name or 'Desempregado',
+                        isEmpty = false,
+                    }
+                else
+                    list[i] = {
+                        slot = i,
+                        isEmpty = true,
+                    }
                 end
             end
             W2F.SendNui('setCharactersList', {
                 characters = list,
-                maxSlots = #Config.Scene.pedSlots,
+                maxSlots = maxSlots,
             })
         end
 
         W2F.SendNui('showSelection', payload)
-        pushCharactersList(characters)
+        pushCharactersList()
         W2F.SendNui('hideCharacterDetails', {})
         W2F.SendNui('hideSkySpawnOptions', {})
 
@@ -321,7 +327,7 @@ function W2F.EnterSelection(reason)
             print(('[w2f-multicharacter][enter] NUI ready=%s'):format(tostring(W2F.Bootstrap.nuiReady)))
             if W2F.Bootstrap.nuiReady then
                 W2F.SendNui('showSelection', payload)
-                pushCharactersList(characters)
+                pushCharactersList()
             end
         end
 
@@ -351,6 +357,13 @@ function W2F.EnterSelection(reason)
                     end
                 end
                 W2F.State.pendingVisualSlot = nil
+            end)
+        else
+            CreateThread(function()
+                Wait(300)
+                if W2F.Session.Is('selection') and W2F.Characters and W2F.Characters.AutoSelectDefault then
+                    W2F.Characters.AutoSelectDefault()
+                end
             end)
         end
 

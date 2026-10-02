@@ -121,26 +121,28 @@ html, body {
    ===================================================================== */
 .top-bar {
     position: absolute;
-    top: 2rem;
+    top: 3.8rem;
     left: 2.5rem;
     right: 2.5rem;
     display: flex;
     align-items: center;
     justify-content: space-between;
     pointer-events: auto;
-    z-index: 20;
+    z-index: 100;
 }
 
 .brand-group {
     display: flex;
     align-items: center;
     gap: 0.85rem;
-    padding: 0.6rem 1.1rem;
-    background: rgba(24, 25, 30, 0.82);
+    padding: 0.65rem 1.15rem;
+    background: rgba(20, 21, 26, 0.88);
     border: 1px solid var(--line);
     border-radius: var(--radius);
     box-shadow: var(--panel-shadow);
     box-shadow: inset 3px 0 0 var(--accent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
 }
 
 .brand-logo {
@@ -157,14 +159,14 @@ html, body {
 }
 
 .brand-title {
-    font-size: 0.78rem;
+    font-size: 0.82rem;
     font-weight: 700;
     letter-spacing: 0.12em;
     color: var(--content-heading);
 }
 
 .brand-subtitle {
-    font-size: 0.62rem;
+    font-size: 0.65rem;
     font-weight: 600;
     letter-spacing: 0.1em;
     color: var(--accent-soft);
@@ -176,28 +178,36 @@ html, body {
     display: flex;
     align-items: center;
     gap: 0.65rem;
+    background: rgba(18, 19, 24, 0.85);
+    padding: 0.35rem 0.65rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
 }
 
 .slot-pill {
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 0.6rem;
-    padding: 0.55rem 1rem;
-    background: rgba(30, 31, 36, 0.85);
+    gap: 0.65rem;
+    padding: 0.55rem 1.15rem;
+    background: rgba(28, 29, 35, 0.9);
     border: 1px solid var(--line);
-    border-radius: var(--radius);
+    border-radius: var(--radius-sm);
     color: var(--content-secondary);
-    font-size: 0.78rem;
+    font-size: 0.82rem;
     font-weight: 600;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: var(--panel-shadow);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .slot-pill .slot-pill-num {
     font-family: var(--font-mono);
-    font-size: 0.68rem;
-    padding: 0.15rem 0.4rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.15rem 0.45rem;
     border-radius: 4px;
     background: var(--surface-deep);
     border: 1px solid var(--line);
@@ -205,7 +215,7 @@ html, body {
 }
 
 .slot-pill .slot-pill-name {
-    font-size: 0.78rem;
+    font-size: 0.82rem;
     white-space: nowrap;
 }
 
@@ -214,13 +224,15 @@ html, body {
     border-color: var(--accent-soft);
     color: var(--content-heading);
     transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
 }
 
 .slot-pill.active {
     background: var(--surface-elevated);
     border-color: var(--accent);
     color: #ffffff;
-    box-shadow: 0 0 16px rgba(16, 185, 129, 0.25), inset 2px 0 0 var(--accent);
+    box-shadow: 0 0 16px rgba(16, 185, 129, 0.35), inset 3px 0 0 var(--accent);
+    transform: translateY(-1px);
 }
 
 .slot-pill.active .slot-pill-num {

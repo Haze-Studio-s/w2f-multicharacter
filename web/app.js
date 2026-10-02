@@ -195,10 +195,10 @@ function renderSlotsNav() {
             btn.classList.add('active');
         }
 
-        if (char) {
+        if (char && !char.isEmpty && char.name) {
             btn.innerHTML = `
                 <span class="slot-pill-num">${pad2(slot)}</span>
-                <span class="slot-pill-name">${char.name || 'Cidadão'}</span>
+                <span class="slot-pill-name">${char.name}</span>
             `;
             btn.addEventListener('click', () => {
                 if (state.spawnBusy || state.createBusy) return;
@@ -208,7 +208,7 @@ function renderSlotsNav() {
             btn.classList.add('empty');
             btn.innerHTML = `
                 <span class="slot-pill-num">${pad2(slot)}</span>
-                <span class="slot-pill-name">+ Criar Personagem</span>
+                <span class="slot-pill-name">+ Criar Cidadão</span>
             `;
             btn.addEventListener('click', () => {
                 if (state.spawnBusy || state.createBusy) return;
@@ -535,7 +535,24 @@ const handlers = {
     },
 
     setCharactersList: (data) => {
-        state.characters = data?.characters || {};
+        const raw = data?.characters;
+        const map = {};
+        if (Array.isArray(raw)) {
+            raw.forEach((item, idx) => {
+                if (item) {
+                    const slotNum = Number(item.slot) || (idx + 1);
+                    map[slotNum] = item;
+                }
+            });
+        } else if (raw && typeof raw === 'object') {
+            Object.entries(raw).forEach(([k, v]) => {
+                if (v) {
+                    const slotNum = Number(v.slot) || Number(k);
+                    map[slotNum] = v;
+                }
+            });
+        }
+        state.characters = map;
         state.maxSlots = data?.maxSlots || state.maxSlots || 3;
         renderSlotsNav();
     },
@@ -744,6 +761,28 @@ dom.createForm?.addEventListener('submit', (e) => {
 });
 
 /* ============================================================
+ * World Click Forwarder (NUI CEF -> Lua Raycast)
+ * ============================================================ */
+window.addEventListener('click', (e) => {
+    if (!state.selectionActive || state.createOpen || state.confirmOpen || state.spawnBusy) return;
+
+    if (e.target.closest('button') ||
+        e.target.closest('input') ||
+        e.target.closest('select') ||
+        e.target.closest('.slot-pill') ||
+        e.target.closest('.lation-card') ||
+        e.target.closest('.modal-card') ||
+        e.target.closest('.hint-bar')) {
+        return;
+    }
+
+    post('clickWorld', {
+        x: e.clientX,
+        y: e.clientY
+    });
+});
+
+/* ============================================================
  * Keyboard Management
  * ============================================================ */
 document.addEventListener('keydown', (e) => {
@@ -768,11 +807,58 @@ document.addEventListener('keydown', (e) => {
         }
         return;
     }
+
+    // Atalhos numéricos (1, 2, 3, 4, 5) para selecionar slots diretamente
+    if (['1', '2', '3', '4', '5'].includes(e.key)) {
+        const slot = Number(e.key);
+        if (slot <= (state.maxSlots || 3)) {
+            const char = state.characters[slot];
+            if (char && !char.isEmpty && char.name) {
+                post('selectSlot', { slot: slot });
+            } else {
+                post('selectEmptySlot', { slot: slot });
+            }
+            return;
+        }
+    }
+
+    // Navegação por setas ou A/D para alternar entre slots
+    if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+        const max = state.maxSlots || 3;
+        let nextSlot = (state.selectedSlot || 0) + 1;
+        if (nextSlot > max) nextSlot = 1;
+        const char = state.characters[nextSlot];
+        if (char && !char.isEmpty && char.name) {
+            post('selectSlot', { slot: nextSlot });
+        } else {
+            post('selectEmptySlot', { slot: nextSlot });
+        }
+        return;
+    }
+
+    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+        const max = state.maxSlots || 3;
+        let prevSlot = (state.selectedSlot || 2) - 1;
+        if (prevSlot < 1) prevSlot = max;
+        const char = state.characters[prevSlot];
+        if (char && !char.isEmpty && char.name) {
+            post('selectSlot', { slot: prevSlot });
+        } else {
+            post('selectEmptySlot', { slot: prevSlot });
+        }
+        return;
+    }
+
+    // Ações de confirmação, cancelamento e exclusão
     if (e.key === 'Escape' && state.selectedSlot !== null) {
         post('cancelDetails');
-    } else if ((e.key === 'Enter' || e.key === ' ') && state.selectedSlot !== null) {
-        beginSpawnSequence();
-        post('pressSpawn');
+    } else if ((e.key === 'Enter' || e.key === ' ')) {
+        if (state.selectedSlot !== null) {
+            beginSpawnSequence();
+            post('pressSpawn');
+        } else {
+            post('selectSlot', { slot: 1 });
+        }
     } else if ((e.key === 'Delete' || e.key === 'Del') && state.selectedSlot !== null) {
         openConfirmDelete();
     }

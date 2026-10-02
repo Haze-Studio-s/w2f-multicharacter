@@ -4,9 +4,15 @@ Cinematic multicharacter selection for **Qbox** — character create / select / 
 
 ## 💎 Design System & UX (Emerald Edition)
 - **Visual Identity:** Paleta oficial Lation (`#10b981`, `#6afe87`, `#1e1f24`), acento lateral `inset 3px 0 0 var(--accent)`, e tipografia técnica dupla (`Inter` para textos, `JetBrains Mono` para moedas e IDs).
+- **Auto-Seleção Inteligente:** Ao entrar na tela, o sistema seleciona automaticamente o último personagem jogado ou o primeiro disponível, focando a câmera e exibindo a ficha do cidadão sem deixar o jogador travado.
+- **Navegação Híbrida (Mouse & Teclado):**
+  - **Teclas Numéricas (`1`, `2`, `3`...):** Seleciona diretamente o slot correspondente.
+  - **Setas (`←`, `→` ou `A`, `D`):** Alterna suavemente entre os personagens da cena.
+  - **Mouse:** Clique direto no Ped 3D in-game (com raycast ampliado e tolerante) OU na barra superior de pills.
+  - **Enter / Espaço:** Confirma e entra na cidade com o personagem ativo.
+  - **Delete:** Aciona a exclusão segura com protocolo de confirmação.
 - **Docked Dossier Card:** Painel lateral direito translúcido com `backdrop-filter: blur(16px)` para leitura estável e sem tremores das métricas do personagem (dinheiro, banco, telefone, idade, tempo de jogo, última localização).
 - **Cinematografia Orgânica:** Câmera com micro hand-shake orgânico ao inspecionar o personagem.
-- **Dual Selection:** Navegue e selecione clicando diretamente nos Peds 3D in-game OU através da barra de slots compacta no topo.
 - **Slots Dinâmicos por Jogador:** Suporte a slots individuais configuráveis via comando `/setslot <id> <slots>` ou exports.
 - **Phone Number Resolver Desacoplado:** Compatibilidade nativa com `lb-phone`, `qs-smartphone-pro`, `qs-smartphone`, `yseries` e fallback no DB.
 - **Modal de Criação:** Validação reativa de nomes, campos de data e seleção de nacionalidade/gênero.
