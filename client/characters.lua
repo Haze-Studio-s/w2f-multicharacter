@@ -68,10 +68,14 @@ local function loadModel(model)
     --- Fall back to freemode if the hash isn't streamable OR isn't a ped. A
     --- valid-in-cdimage but non-ped hash (corrupted/migrated character row, or a
     --- vehicle/object hash) passed to CreatePed hard-crashes the game.
-    if not IsModelInCdimage(hash) or not IsModelAPed(hash) then
+    if not hash or not IsModelValid(hash) or not IsModelInCdimage(hash) or not IsModelAPed(hash) then
         hash = `mp_m_freemode_01`
     end
-    lib.requestModel(hash, 10000)
+    local ok = pcall(lib.requestModel, hash, 10000)
+    if not ok or not HasModelLoaded(hash) then
+        hash = `mp_m_freemode_01`
+        pcall(lib.requestModel, hash, 10000)
+    end
     return hash
 end
 
@@ -370,20 +374,22 @@ local function applyEmote(ped, emoteName, slotCoords, heading, slotIndex, charac
         --- World prop spawned at the slot (e.g. chair the ped sits on).
         if def.prop and def.prop.model then
             local propHash = type(def.prop.model) == 'string' and joaat(def.prop.model) or def.prop.model
-            if IsModelInCdimage(propHash) then
-                lib.requestModel(propHash, 5000)
-                local propZ = slotCoords.z + (def.prop.offsetZ or 0.0)
-                local prop = CreateObject(propHash, slotCoords.x, slotCoords.y, propZ, false, true, false)
-                if prop and prop ~= 0 then
-                    SetEntityHeading(prop, heading)
-                    if def.prop.placeOnGround ~= false then
-                        PlaceObjectOnGroundProperly(prop)
+            if propHash and IsModelValid(propHash) and IsModelInCdimage(propHash) then
+                local ok = pcall(lib.requestModel, propHash, 5000)
+                if ok and HasModelLoaded(propHash) then
+                    local propZ = slotCoords.z + (def.prop.offsetZ or 0.0)
+                    local prop = CreateObject(propHash, slotCoords.x, slotCoords.y, propZ, false, true, false)
+                    if prop and prop ~= 0 then
+                        SetEntityHeading(prop, heading)
+                        if def.prop.placeOnGround ~= false then
+                            PlaceObjectOnGroundProperly(prop)
+                        end
+                        FreezeEntityPosition(prop, true)
+                        SetEntityCollision(prop, true, true)
+                        props[#props + 1] = prop
                     end
-                    FreezeEntityPosition(prop, true)
-                    SetEntityCollision(prop, true, true)
-                    props[#props + 1] = prop
+                    SetModelAsNoLongerNeeded(propHash)
                 end
-                SetModelAsNoLongerNeeded(propHash)
             end
         end
 
@@ -430,23 +436,25 @@ local function applyEmote(ped, emoteName, slotCoords, heading, slotIndex, charac
         --- Optional prop attached to a bone (e.g. whiskey glass in the hand).
         if def.attachProp and def.attachProp.model then
             local apHash = type(def.attachProp.model) == 'string' and joaat(def.attachProp.model) or def.attachProp.model
-            if IsModelInCdimage(apHash) then
-                lib.requestModel(apHash, 5000)
-                local pc = GetEntityCoords(ped)
-                local attach = CreateObject(apHash, pc.x, pc.y, pc.z, false, true, false)
-                if attach and attach ~= 0 then
-                    SetEntityCollision(attach, false, false)
-                    local boneIdx = GetPedBoneIndex(ped, def.attachProp.bone or 60309)
-                    local ox = def.attachProp.offset and def.attachProp.offset.x or 0.0
-                    local oy = def.attachProp.offset and def.attachProp.offset.y or 0.0
-                    local oz = def.attachProp.offset and def.attachProp.offset.z or 0.0
-                    local rx = def.attachProp.rot and def.attachProp.rot.x or 0.0
-                    local ry = def.attachProp.rot and def.attachProp.rot.y or 0.0
-                    local rz = def.attachProp.rot and def.attachProp.rot.z or 0.0
-                    AttachEntityToEntity(attach, ped, boneIdx, ox, oy, oz, rx, ry, rz, true, true, false, true, 1, true)
-                    props[#props + 1] = attach
+            if apHash and IsModelValid(apHash) and IsModelInCdimage(apHash) then
+                local ok = pcall(lib.requestModel, apHash, 5000)
+                if ok and HasModelLoaded(apHash) then
+                    local pc = GetEntityCoords(ped)
+                    local attach = CreateObject(apHash, pc.x, pc.y, pc.z, false, true, false)
+                    if attach and attach ~= 0 then
+                        SetEntityCollision(attach, false, false)
+                        local boneIdx = GetPedBoneIndex(ped, def.attachProp.bone or 60309)
+                        local ox = def.attachProp.offset and def.attachProp.offset.x or 0.0
+                        local oy = def.attachProp.offset and def.attachProp.offset.y or 0.0
+                        local oz = def.attachProp.offset and def.attachProp.offset.z or 0.0
+                        local rx = def.attachProp.rot and def.attachProp.rot.x or 0.0
+                        local ry = def.attachProp.rot and def.attachProp.rot.y or 0.0
+                        local rz = def.attachProp.rot and def.attachProp.rot.z or 0.0
+                        AttachEntityToEntity(attach, ped, boneIdx, ox, oy, oz, rx, ry, rz, true, true, false, true, 1, true)
+                        props[#props + 1] = attach
+                    end
+                    SetModelAsNoLongerNeeded(apHash)
                 end
-                SetModelAsNoLongerNeeded(apHash)
             end
         end
     else
