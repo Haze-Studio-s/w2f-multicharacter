@@ -402,37 +402,89 @@ local function validateCreatePayload(data)
     }
 end
 
-local function giveStarterItems(source)
+local function giveStarterItems(source, arrivalId)
     if GetResourceState('ox_inventory') == 'missing' then return end
 
-    local starterItems
-    local raw = LoadResourceFile('qbx_core', 'config/shared.lua')
-    if raw then
-        local ok, shared = pcall(function()
-            local chunk = load(raw, '@qbx_core/config/shared.lua')
-            return chunk and chunk()
-        end)
-        if ok and shared and shared.starterItems then
-            starterItems = shared.starterItems
+    local arrivalConfig = (Config.Arrival and Config.Arrival.starterPerArrival and Config.Arrival.starterPerArrival[arrivalId])
+        or (Config.Arrival and Config.Arrival.starterPerArrival and Config.Arrival.starterPerArrival.default)
+
+    -- Controle de Dinheiro inicial conforme a história
+    if arrivalConfig and (arrivalConfig.wipeCash or arrivalConfig.wipeBank) then
+        local player = exports.qbx_core:GetPlayer(source)
+        if player then
+            if arrivalConfig.wipeCash then
+                pcall(function() exports.qbx_core:SetMoney(source, 'cash', 0, 'arrival_story_setup') end)
+            end
+            if arrivalConfig.wipeBank then
+                pcall(function() exports.qbx_core:SetMoney(source, 'bank', 0, 'arrival_story_setup') end)
+            end
         end
     end
-    if not starterItems then return end
+
+    local itemsToGive = {}
+
+    if arrivalConfig and not arrivalConfig.useFrameworkDefaults and arrivalConfig.items then
+        for _, it in ipairs(arrivalConfig.items) do
+            local give = true
+            if it.chance and math.random(1, 100) > it.chance then
+                give = false
+            end
+            if give then
+                local meta = it.metadata
+                if it.requireIdCardMeta and GetResourceState('qbx_idcard') == 'started' then
+                    local okMeta, idMeta = pcall(function()
+                        return exports.qbx_idcard:GetMetaLicense(source, { it.name })
+                    end)
+                    if okMeta and idMeta then meta = idMeta end
+                end
+                itemsToGive[#itemsToGive + 1] = {
+                    name = it.name,
+                    amount = it.amount or 1,
+                    metadata = meta,
+                }
+            end
+        end
+    else
+        -- Fallback nativo: qbx_core starterItems
+        local raw = LoadResourceFile('qbx_core', 'config/shared.lua')
+        if raw then
+            local ok, shared = pcall(function()
+                local chunk = load(raw, '@qbx_core/config/shared.lua')
+                return chunk and chunk()
+            end)
+            if ok and shared and shared.starterItems then
+                for _, it in ipairs(shared.starterItems) do
+                    local meta = it.metadata
+                    if type(meta) == 'function' then
+                        local okFn, resFn = pcall(meta, source)
+                        meta = okFn and resFn or nil
+                    end
+                    itemsToGive[#itemsToGive + 1] = {
+                        name = it.name,
+                        amount = it.amount or 1,
+                        metadata = meta,
+                    }
+                end
+            end
+        end
+    end
+
+    if #itemsToGive == 0 then return end
 
     CreateThread(function()
         local timeout = GetGameTimer() + 10000
         while not exports.ox_inventory:GetInventory(source) and GetGameTimer() < timeout do
             Wait(100)
         end
-        for i = 1, #starterItems do
-            local item = starterItems[i]
-            if item.metadata and type(item.metadata) == 'function' then
-                exports.ox_inventory:AddItem(source, item.name, item.amount, item.metadata(source))
-            else
+        for i = 1, #itemsToGive do
+            local item = itemsToGive[i]
+            pcall(function()
                 exports.ox_inventory:AddItem(source, item.name, item.amount, item.metadata)
-            end
+            end)
         end
     end)
 end
+
 
 --- Query all authenticated license identifiers, including equivalent
 --- `license:`/`license2:` variants, so the lineup matches what qbx_core may
@@ -751,7 +803,7 @@ lib.callback.register('w2f-multicharacter:server:createCharacter', function(sour
             return
         end
 
-        giveStarterItems(source)
+        giveStarterItems(source, result.arrivalId)
 
         if W2F.Database then
             W2F.Database.Log(license or license2, citizenid, 'create',

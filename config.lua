@@ -832,4 +832,36 @@ Config.Arrival = {
 
     --- Coordenadas de posição segura para cutscene do avião (área aberta)
     planeSpawnCoords = vec4(-1037.0, -2737.0, 13.8, 0.0),
+
+    --- Distribuição de itens e dinheiro conforme a história de chegada:
+    ---   * container: sem dinheiro/banco, sem documentos, % chance celular (ex: 20%), vem com cigarro/maço e isqueiro.
+    ---   * plane: celular garantido, sem carteira de motorista (mas com RG/id_card), % chance cigarro (ex: 40%), dinheiro normal.
+    ---   * default/none: kit padrão completo (qbx_core/config/shared.lua).
+    starterPerArrival = {
+        container = {
+            wipeCash = true,
+            wipeBank = true,
+            items = {
+                { name = 'cigarette', amount = 5 },
+                { name = 'lighter', amount = 1 },
+                { name = 'phone', amount = 1, chance = 20 }, -- 20% chance de ter escondido um celular
+            },
+        },
+        plane = {
+            wipeCash = false,
+            wipeBank = false,
+            items = {
+                { name = 'phone', amount = 1 },
+                { name = 'id_card', amount = 1, requireIdCardMeta = true }, -- Com documento de identidade
+                { name = 'cigarette', amount = 2, chance = 40 },           -- 40% chance de ter cigarros no bolso
+                { name = 'lighter', amount = 1, chance = 40 },
+                -- Sem carteira de motorista (driver_license omitido)
+            },
+        },
+        default = {
+            -- Segue o starterItems nativo de qbx_core/config/shared.lua
+            useFrameworkDefaults = true,
+        },
+    },
 }
+
