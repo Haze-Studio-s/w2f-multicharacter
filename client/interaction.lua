@@ -54,6 +54,7 @@ local function wasLeftClickPressed()
 end
 
 function W2F.Interaction.UpdateCameraDrag()
+    if LocalPlayer.state.whitelist_dialog_open then return end
     if W2F.State.isCreatePanelOpen or W2F.State.isCreatingCharacter then
         return
     end
@@ -114,6 +115,7 @@ local function pickPedThisFrame()
 end
 
 function W2F.Interaction.UpdatePedTargeting()
+    if LocalPlayer.state.whitelist_dialog_open then return end
     if Config.Interaction.hoverEnabled == false then
         return
     end
@@ -162,6 +164,7 @@ function W2F.Interaction.UpdatePedTargeting()
 end
 
 function W2F.Interaction.HandleClick()
+    if LocalPlayer.state.whitelist_dialog_open then return end
     if Config.Interaction.selectionEnabled == false then
         return
     end
@@ -320,6 +323,37 @@ RegisterNUICallback('selectCharacterPed', function(data, cb)
                 W2F.Characters.SelectSlot(slot, entry)
             end
         end
+    end
+    cb('ok')
+end)
+
+RegisterNUICallback('selectSlot', function(data, cb)
+    if W2F.State.isCreatePanelOpen then
+        cb('ok')
+        return
+    end
+    local slot = tonumber(data and data.slot)
+    if slot then
+        local entry = W2F.State.previewPeds[slot]
+        if entry then
+            if entry.isEmpty then
+                W2F.Characters.OpenCreateForSlot(slot)
+            elseif entry.character then
+                W2F.Characters.SelectSlot(slot, entry)
+            end
+        end
+    end
+    cb('ok')
+end)
+
+RegisterNUICallback('selectEmptySlot', function(data, cb)
+    if W2F.State.isCreatePanelOpen then
+        cb('ok')
+        return
+    end
+    local slot = tonumber(data and data.slot)
+    if slot then
+        W2F.Characters.OpenCreateForSlot(slot)
     end
     cb('ok')
 end)

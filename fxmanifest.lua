@@ -59,6 +59,7 @@ files {
     'web/index.html',
     'web/app.js',
     'web/style.css',
+    'locales/*.json',
 }
 
 -- Runtime integration notes:

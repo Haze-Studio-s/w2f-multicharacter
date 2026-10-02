@@ -284,7 +284,31 @@ function W2F.EnterSelection(reason)
                 maxSlots = #Config.Scene.pedSlots,
                 showControlHints = Config.UI.showControlHints,
             }
+        local function pushCharactersList(chars)
+            local list = {}
+            if type(chars) == 'table' then
+                for i = 1, #Config.Scene.pedSlots do
+                    local char = chars[i]
+                    if char then
+                        local cinfo = char.charinfo or {}
+                        local job = char.job or {}
+                        list[i] = {
+                            slot = i,
+                            name = ('%s %s'):format(cinfo.firstname or 'Cidadão', cinfo.lastname or ''),
+                            citizenid = char.citizenid,
+                            job = job.label or job.name or 'Desempregado',
+                        }
+                    end
+                end
+            end
+            W2F.SendNui('setCharactersList', {
+                characters = list,
+                maxSlots = #Config.Scene.pedSlots,
+            })
+        end
+
         W2F.SendNui('showSelection', payload)
+        pushCharactersList(characters)
         W2F.SendNui('hideCharacterDetails', {})
         W2F.SendNui('hideSkySpawnOptions', {})
 
@@ -297,6 +321,7 @@ function W2F.EnterSelection(reason)
             print(('[w2f-multicharacter][enter] NUI ready=%s'):format(tostring(W2F.Bootstrap.nuiReady)))
             if W2F.Bootstrap.nuiReady then
                 W2F.SendNui('showSelection', payload)
+                pushCharactersList(characters)
             end
         end
 

@@ -1,183 +1,260 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>W2F Character Selection</title>
+    <title>W2F Multicharacter — Lation Emerald Edition</title>
     <link rel="stylesheet" href="style.css" />
 </head>
 <body>
     <div id="app" class="app hidden">
 
+        <!-- Ambient overlay -->
         <div id="vignette" class="vignette" aria-hidden="true"></div>
         <div id="bgGrid" class="bg-grid" aria-hidden="true"></div>
 
-        <div id="hint" class="hint">
-            <span>Hover Ped</span>
-            <span>Click Select</span>
-            <span>Empty Slot Create</span>
-            <span><kbd>Enter</kbd> Spawn</span>
-            <span><kbd>Del</kbd> Delete</span>
-            <span><kbd>Esc</kbd> Back</span>
-        </div>
+        <!-- Barra Superior: Brand & Navegador de Slots -->
+        <header id="topBar" class="top-bar">
+            <div class="brand-group">
+                <div class="brand-logo">
+                    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <span class="brand-title">W2F &middot; IDENTIDADE CIVIL</span>
+                    <span class="brand-subtitle">SELEÇÃO DE CIDADÃO</span>
+                </div>
+            </div>
 
-        <div id="hologram" class="hologram hidden" aria-live="polite">
-            <div class="holo-cone" aria-hidden="true"></div>
-            <div class="holo-stage">
-                <div class="holo-scan" aria-hidden="true"></div>
-                <div class="holo-noise" aria-hidden="true"></div>
-                <div class="holo-glitch" aria-hidden="true"></div>
+            <!-- Slots Pills (Sincronizados com os peds 3D in-world) -->
+            <nav id="slotsNav" class="slots-nav" aria-label="Seleção de slots"></nav>
+        </header>
 
-                <div class="holo-corners" aria-hidden="true">
-                    <span></span><span></span><span></span><span></span>
+        <!-- Ficha do Cidadão (Lation Docked Dossier - Lateral Direita) -->
+        <aside id="dossierPanel" class="dossier-panel hidden" aria-live="polite">
+            <div class="lation-card dossier-card">
+                <!-- Cabeçalho Lation -->
+                <header class="dossier-head">
+                    <div class="dossier-avatar" id="dossierAvatar">VP</div>
+                    <div class="dossier-meta">
+                        <div class="dossier-slot-tag">
+                            <span class="dot-online"></span>
+                            <span id="dossierSlot">SLOT 01</span>
+                            <span class="chip-cid" id="dossierCid">CID: 0000</span>
+                        </div>
+                        <h1 id="dossierName" class="dossier-name">—</h1>
+                        <div class="dossier-badge-row">
+                            <span id="dossierJob" class="chip chip-job">—</span>
+                        </div>
+                    </div>
+                </header>
+
+                <div class="dossier-divider" aria-hidden="true"></div>
+
+                <!-- Estatísticas e Métricas em JetBrains Mono -->
+                <div class="dossier-body">
+                    <div class="dossier-section-title">DADOS FINANCEIROS & STATUS</div>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <div class="stat-label">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                                <span>Dinheiro</span>
+                            </div>
+                            <span id="dossierCash" class="stat-value money-cash">R$ 0</span>
+                        </div>
+
+                        <div class="stat-box">
+                            <div class="stat-label">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                                <span>Banco</span>
+                            </div>
+                            <span id="dossierBank" class="stat-value money-bank">R$ 0</span>
+                        </div>
+
+                        <div class="stat-box">
+                            <div class="stat-label">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                <span>Tempo de Jogo</span>
+                            </div>
+                            <span id="dossierPlaytime" class="stat-value">0h 0m</span>
+                        </div>
+
+                        <div class="stat-box">
+                            <div class="stat-label">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                <span>Última Posição</span>
+                            </div>
+                            <span id="dossierLocation" class="stat-value location-text">—</span>
+                        </div>
+                    </div>
                 </div>
 
-                <header class="holo-header">
-                    <div class="holo-meta">
-                        <span class="holo-id">ID</span>
-                        <span id="holoSlot" class="holo-slot">00</span>
-                        <span class="holo-status">
-                            <span class="holo-status-dot"></span>
-                            Active
-                        </span>
+                <!-- Ações do Personagem -->
+                <footer class="dossier-actions">
+                    <button id="spawnBtn" type="button" class="lation-btn primary btn-play">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                        <span class="btn-text">Entrar na Cidade</span>
+                        <kbd>Enter</kbd>
+                    </button>
+                    
+                    <div class="secondary-actions">
+                        <button id="deleteBtn" type="button" class="lation-btn danger btn-delete">
+                            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            <span>Apagar</span>
+                            <kbd>Del</kbd>
+                        </button>
+                        <button id="closeDetailsBtn" type="button" class="lation-btn ghost btn-back">
+                            <span>Voltar</span>
+                            <kbd>Esc</kbd>
+                        </button>
                     </div>
-                    <h1 id="holoName" class="holo-name" data-text="—">—</h1>
-                    <p id="holoJob" class="holo-job">—</p>
-                </header>
-
-                <div class="holo-divider" aria-hidden="true"></div>
-
-                <dl class="holo-stats">
-                    <div>
-                        <dt>Cash</dt>
-                        <dd id="holoCash">—</dd>
-                    </div>
-                    <div>
-                        <dt>Bank</dt>
-                        <dd id="holoBank">—</dd>
-                    </div>
-                    <div>
-                        <dt>Playtime</dt>
-                        <dd id="holoPlaytime">—</dd>
-                    </div>
-                    <div>
-                        <dt>Last Location</dt>
-                        <dd id="holoLocation">—</dd>
-                    </div>
-                </dl>
-
-                <footer class="holo-footer" aria-hidden="true">
-                    <span class="holo-tag">W2F &middot; LIVE FEED</span>
-                    <span class="holo-bars">
-                        <i></i><i></i><i></i><i></i><i></i>
-                    </span>
                 </footer>
             </div>
+        </aside>
+
+        <!-- Barra Inferior de Dicas Ergonômicas -->
+        <div id="hint" class="hint-bar">
+            <span class="hint-item"><kbd>Clique</kbd> Selecionar</span>
+            <span class="hint-item"><kbd>Enter</kbd> Confirmar</span>
+            <span class="hint-item"><kbd>Del</kbd> Excluir</span>
+            <span class="hint-item"><kbd>Esc</kbd> Voltar</span>
         </div>
 
-        <div id="actionBar" class="action-bar hidden">
-            <button id="spawnBtn" type="button" class="hbtn hbtn-primary">
-                <span class="hbtn-label">Spawn</span>
-                <kbd>Enter</kbd>
-            </button>
-            <button id="deleteBtn" type="button" class="hbtn hbtn-danger">
-                <span class="hbtn-label">Delete</span>
-                <kbd>Del</kbd>
-            </button>
-            <button id="closeDetailsBtn" type="button" class="hbtn hbtn-ghost">
-                <span class="hbtn-label">Back</span>
-                <kbd>Esc</kbd>
-            </button>
-        </div>
-
-        <div id="confirmDelete" class="confirm-overlay hidden" role="dialog" aria-modal="true">
-            <div class="confirm-stage">
-                <div class="confirm-glow" aria-hidden="true"></div>
-                <header class="confirm-head">
-                    <span class="sky-prefix">// W2F</span>
-                    <h2 class="confirm-title">Permanently Delete</h2>
+        <!-- Modal de Confirmação de Deleção com Protocolo Seguro -->
+        <div id="confirmDelete" class="modal-overlay hidden" role="dialog" aria-modal="true">
+            <div class="lation-card modal-delete">
+                <header class="modal-head">
+                    <div class="modal-brand">
+                        <span class="modal-title">EXCLUIR REGISTRO CIVIL</span>
+                        <span class="modal-sub">Esta operação é definitiva e permanente</span>
+                    </div>
+                    <span class="chip-danger">IRREVERSÍVEL</span>
                 </header>
-                <p class="confirm-body">
-                    You are about to delete
-                    <strong id="confirmName">this character</strong>.
-                    All progress, money, and inventory will be lost.
-                </p>
-                <p class="confirm-note" id="confirmNote">Type <kbd>DELETE</kbd> to confirm.</p>
-                <input
-                    type="text"
-                    id="confirmInput"
-                    class="confirm-input"
-                    autocomplete="off"
-                    aria-label="Type DELETE to confirm"
-                    placeholder="Type DELETE"
-                    aria-describedby="confirmNote"
-                />
-                <footer class="confirm-actions">
-                    <button type="button" id="confirmDeleteBtn" class="hbtn hbtn-danger" disabled>
-                        <span class="hbtn-label">Delete Forever</span>
-                    </button>
-                    <button type="button" id="confirmCancelBtn" class="hbtn hbtn-ghost">
-                        <span class="hbtn-label">Cancel</span>
+
+                <div class="modal-body">
+                    <p class="delete-warning">
+                        Você está prestes a apagar todos os bens, veículos, inventário e histórico do cidadão:
+                        <strong id="confirmName">—</strong>
+                    </p>
+                    <p class="delete-instruction">
+                        Para confirmar, digite exatamente <kbd>DELETAR</kbd> abaixo:
+                    </p>
+                    <input
+                        type="text"
+                        id="confirmInput"
+                        class="lation-input delete-input"
+                        autocomplete="off"
+                        placeholder="Digite DELETAR"
+                    />
+                </div>
+
+                <footer class="modal-foot">
+                    <button type="button" id="confirmCancelBtn" class="lation-btn ghost">
+                        <span>Cancelar</span>
                         <kbd>Esc</kbd>
                     </button>
+                    <button type="button" id="confirmDeleteBtn" class="lation-btn danger" disabled>
+                        <span>Excluir Definitivamente</span>
+                    </button>
                 </footer>
             </div>
         </div>
 
-        <section id="createPanel" class="create-panel hidden" aria-label="Create character">
-            <div class="create-stage">
-                <header class="create-head">
-                    <span class="sky-prefix">// W2F</span>
-                    <h2 class="create-title">New Identity</h2>
-                    <span class="create-slot">Slot <span id="createSlotLabel">01</span></span>
+        <!-- Modal de Criação de Cidadão (Lation Form) -->
+        <section id="createPanel" class="modal-overlay hidden" aria-label="Criar personagem">
+            <div class="lation-card modal-create">
+                <header class="modal-head">
+                    <div class="modal-brand">
+                        <span class="modal-title">NOVO REGISTRO CIVIL</span>
+                        <span class="modal-sub">Defina os dados fundamentais da sua nova identidade</span>
+                    </div>
+                    <span class="chip-slot" id="createSlotLabel">SLOT 01</span>
                 </header>
+
                 <p id="createError" class="create-error hidden" role="alert"></p>
+
                 <form id="createForm" class="create-form" autocomplete="off">
-                    <label class="create-field">
-                        <span>First name</span>
-                        <input type="text" id="createFirst" name="firstname" maxlength="24" required />
-                    </label>
-                    <label class="create-field">
-                        <span>Last name</span>
-                        <input type="text" id="createLast" name="lastname" maxlength="24" required />
-                    </label>
-                    <label class="create-field">
-                        <span>Nationality</span>
-                        <select id="createNationality" name="nationality"></select>
-                    </label>
-                    <label class="create-field">
-                        <span>Gender</span>
-                        <select id="createGender" name="gender" required>
-                            <option value="0">Male</option>
-                            <option value="1">Female</option>
-                        </select>
-                    </label>
-                    <label class="create-field">
-                        <span>Date of birth</span>
-                        <input type="date" id="createBirthdate" name="birthdate" required />
-                    </label>
-                    <footer class="create-actions">
-                        <button type="submit" id="createSubmitBtn" class="hbtn hbtn-primary">
-                            <span class="hbtn-label">Build Character</span>
-                        </button>
-                        <button type="button" id="createCancelBtn" class="hbtn hbtn-ghost">
-                            <span class="hbtn-label">Cancel</span>
+                    <div class="form-row">
+                        <label class="form-field">
+                            <span>Primeiro Nome</span>
+                            <input type="text" id="createFirst" name="firstname" class="lation-input" maxlength="24" required placeholder="Ex: Lucas" />
+                        </label>
+                        <label class="form-field">
+                            <span>Sobrenome</span>
+                            <input type="text" id="createLast" name="lastname" class="lation-input" maxlength="24" required placeholder="Ex: Silva" />
+                        </label>
+                    </div>
+
+                    <div class="form-row">
+                        <label class="form-field">
+                            <span>Nacionalidade</span>
+                            <select id="createNationality" name="nationality" class="lation-input"></select>
+                        </label>
+                        <label class="form-field">
+                            <span>Data de Nascimento</span>
+                            <input type="date" id="createBirthdate" name="birthdate" class="lation-input" required />
+                        </label>
+                    </div>
+
+                    <div class="form-field">
+                        <span>Gênero</span>
+                        <div class="gender-selector">
+                            <label class="gender-option">
+                                <input type="radio" name="gender" value="0" checked id="genderMale" />
+                                <span class="gender-pill">
+                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="14" r="5"/><line x1="19" y1="5" x2="13.6" y2="10.4"/><polyline points="15 5 19 5 19 9"/></svg>
+                                    Masculino
+                                </span>
+                            </label>
+                            <label class="gender-option">
+                                <input type="radio" name="gender" value="1" id="genderFemale" />
+                                <span class="gender-pill">
+                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="9" r="5"/><line x1="12" y1="14" x2="12" y2="21"/><line x1="9" y1="18" x2="15" y2="18"/></svg>
+                                    Feminino
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <footer class="modal-foot">
+                        <button type="button" id="createCancelBtn" class="lation-btn ghost">
+                            <span>Cancelar</span>
                             <kbd>Esc</kbd>
+                        </button>
+                        <button type="submit" id="createSubmitBtn" class="lation-btn primary">
+                            <span>Confirmar e Personalizar</span>
                         </button>
                     </footer>
                 </form>
             </div>
         </section>
 
-        <section id="skySpawnPanel" class="sky-panel hidden" aria-label="Spawn location">
-            <header class="sky-head">
-                <span class="sky-prefix">// W2F</span>
-                <h2 class="sky-title">Select Deployment Zone</h2>
-                <span class="sky-suffix">SECURE</span>
-            </header>
-            <div id="skySpawnGrid" class="sky-grid"></div>
+        <!-- Spawn Selector (Deployment Zone - Lation Emerald) -->
+        <section id="skySpawnPanel" class="modal-overlay hidden" aria-label="Local de nascimento">
+            <div class="lation-card modal-spawn">
+                <header class="modal-head">
+                    <div class="modal-brand">
+                        <span class="modal-title" id="spawnTitle">ZONA DE DESEMBARQUE</span>
+                        <span class="modal-sub">Selecione onde seu cidadão iniciará o dia na cidade</span>
+                    </div>
+                    <span class="chip-status">SELEÇÃO</span>
+                </header>
+
+                <div id="skySpawnGrid" class="spawn-grid"></div>
+
+                <footer class="modal-foot spawn-foot">
+                    <span class="esc-hint">Pressione <kbd>ESC</kbd> para cancelar</span>
+                </footer>
+            </div>
         </section>
+
     </div>
+
+    <!-- Toast Notifications Container -->
+    <div id="w2fToasts" class="w2f-toasts" aria-live="polite"></div>
+
     <script src="app.js"></script>
 </body>
 </html>

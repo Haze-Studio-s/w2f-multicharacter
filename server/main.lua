@@ -739,7 +739,7 @@ lib.callback.register('w2f-multicharacter:server:createCharacter', function(sour
 
         if GetResourceState('vp_whitelist') == 'started' then
             pcall(function()
-                exports['vp_whitelist']:RegisterNewCharacter(citizenid, license or license2 or 'unknown', result)
+                exports['vp_whitelist']:RegisterNewCharacter(citizenid, license or license2 or 'unknown', result, nil, nil, source)
             end)
         end
 
@@ -1253,6 +1253,7 @@ lib.callback.register('w2f-multicharacter:server:selectCharacter', function(sour
                 ),
                 duration = 8000
             })
+            TriggerClientEvent('vp_whitelist:client:promptSubmission', source, citizenid, status, details)
             return false
         end
     end

@@ -1,11 +1,14 @@
-# w2f-multicharacter
+# w2f-multicharacter (Lation Modern UI — Emerald Edition)
 
-Cinematic multicharacter selection for **Qbox** — character create / select / delete / spawn, with illenium-appearance and optional starter apartments.
+Cinematic multicharacter selection for **Qbox** — character create / select / delete / spawn, with illenium-appearance, optional starter apartments and the official **Lation Modern UI Design System (Emerald Edition)**.
 
-# Preview 
-<img width="1487" height="840" alt="image" src="https://github.com/user-attachments/assets/40fc47ad-b28e-4313-9f9e-b9a9e7847cfe" />
-<img width="1487" height="840" alt="image" src="https://github.com/user-attachments/assets/f44accbd-7289-49e8-8535-6587d68758c4" />
-
+## 💎 Design System & UX (Emerald Edition)
+- **Visual Identity:** Paleta oficial Lation (`#10b981`, `#6afe87`, `#1e1f24`), acento lateral `inset 3px 0 0 var(--accent)`, e tipografia técnica dupla (`Inter` para textos, `JetBrains Mono` para moedas e IDs).
+- **Docked Dossier Card:** Painel lateral direito translúcido com `backdrop-filter: blur(16px)` para leitura estável e sem tremores das métricas do personagem.
+- **Dual Selection:** Navegue e selecione clicando diretamente nos Peds 3D in-game OU através da barra de slots compacta no topo.
+- **Modal de Criação:** Validação reativa de nomes, campos de data e seleção de nacionalidade/gênero.
+- **Deleção Segura:** Protocolo com exigência de digitação `DELETAR` e bloqueio anti-dupe / anti-spam.
+- **Locales Nativos:** Tradução integral em português do Brasil (`locales/pt-br.json`).
 
 ## Requirements
 

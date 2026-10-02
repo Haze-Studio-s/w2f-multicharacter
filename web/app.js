@@ -1,60 +1,60 @@
 /**
- * W2F Multicharacter NUI controller.
- *
- * Phase 5 rewrite:
- *   - All result messages (`createCharacterResult`, `spawnFailed`, …) accept
- *     the new `{ ok, error, payload }` envelope from W2F.Nui.SendResult.
- *   - Every busy flag has a hard timeout that auto-recovers the UI if Lua
- *     never replies (defensive: a Lua-side stall can no longer wedge the UI).
- *   - `spawnFailed` surfaces the server's error string instead of silently
- *     re-showing the hint bar.
- *   - Toast queue + transient surface for status, warnings, and errors.
- *   - Accessibility: focus management for modals, aria-live error region,
- *     keyboard-trap inside the delete + create panels.
- *   - Sky-grid is now scrollable on small viewports (CSS already, but the
- *     payload may also include a long list).
+ * W2F Multicharacter — NUI Controller
+ * Padrão Oficial: Lation Modern UI (Emerald Edition)
  */
 
 const dom = {
     app: document.getElementById('app'),
+    topBar: document.getElementById('topBar'),
+    slotsNav: document.getElementById('slotsNav'),
     hint: document.getElementById('hint'),
-    hologram: document.getElementById('hologram'),
-    actionBar: document.getElementById('actionBar'),
-    skySpawnPanel: document.getElementById('skySpawnPanel'),
-    skySpawnGrid: document.getElementById('skySpawnGrid'),
 
-    holoName: document.getElementById('holoName'),
-    holoJob: document.getElementById('holoJob'),
-    holoSlot: document.getElementById('holoSlot'),
-    holoCash: document.getElementById('holoCash'),
-    holoBank: document.getElementById('holoBank'),
-    holoPlaytime: document.getElementById('holoPlaytime'),
-    holoLocation: document.getElementById('holoLocation'),
+    // Dossier Panel (Ficha do Cidadão)
+    dossierPanel: document.getElementById('dossierPanel'),
+    dossierAvatar: document.getElementById('dossierAvatar'),
+    dossierSlot: document.getElementById('dossierSlot'),
+    dossierCid: document.getElementById('dossierCid'),
+    dossierName: document.getElementById('dossierName'),
+    dossierJob: document.getElementById('dossierJob'),
+    dossierCash: document.getElementById('dossierCash'),
+    dossierBank: document.getElementById('dossierBank'),
+    dossierPlaytime: document.getElementById('dossierPlaytime'),
+    dossierLocation: document.getElementById('dossierLocation'),
 
+    // Actions
     spawnBtn: document.getElementById('spawnBtn'),
     deleteBtn: document.getElementById('deleteBtn'),
     closeDetailsBtn: document.getElementById('closeDetailsBtn'),
 
+    // Modal de Confirmação de Deleção
     confirmDelete: document.getElementById('confirmDelete'),
+    confirmName: document.getElementById('confirmName'),
+    confirmInput: document.getElementById('confirmInput'),
     confirmDeleteBtn: document.getElementById('confirmDeleteBtn'),
     confirmCancelBtn: document.getElementById('confirmCancelBtn'),
-    confirmInput: document.getElementById('confirmInput'),
-    confirmName: document.getElementById('confirmName'),
 
+    // Modal de Criação
     createPanel: document.getElementById('createPanel'),
     createForm: document.getElementById('createForm'),
     createSlotLabel: document.getElementById('createSlotLabel'),
     createNationality: document.getElementById('createNationality'),
     createBirthdate: document.getElementById('createBirthdate'),
-    createGender: document.getElementById('createGender'),
     createError: document.getElementById('createError'),
     createCancelBtn: document.getElementById('createCancelBtn'),
+    createSubmitBtn: document.getElementById('createSubmitBtn'),
+
+    // Spawn Picker Panel
+    skySpawnPanel: document.getElementById('skySpawnPanel'),
+    skySpawnGrid: document.getElementById('skySpawnGrid'),
+    spawnTitle: document.getElementById('spawnTitle'),
+
+    // Toasts
+    toastsContainer: document.getElementById('w2fToasts'),
 };
 
-const resourceName =
-    typeof GetParentResourceName === 'function'
-        ? GetParentResourceName()
-        : 'w2f-multicharacter';
+const resourceName = typeof GetParentResourceName === 'function'
+    ? GetParentResourceName()
+    : 'w2f-multicharacter';
 
 const state = {
     selectionActive: false,
@@ -62,6 +62,8 @@ const state = {
     spawnBusy: false,
     selectedSlot: null,
     selectedCharacterName: null,
+    characters: {},
+    maxSlots: 3,
     createOpen: false,
     createSlot: null,
     createBusy: false,
@@ -71,12 +73,12 @@ const state = {
     lastFocus: null,
 };
 
-/** Busy-flag watchdogs (ms after which we force-clear the flag locally). */
 const TIMEOUTS = {
     spawn: 20000,
     create: 12000,
     confirm: 20000,
 };
+
 const timers = {};
 
 function clearTimer(key) {
@@ -100,7 +102,7 @@ function post(endpoint, data = {}) {
         headers: { 'Content-Type': 'application/json; charset=UTF-8' },
         body: JSON.stringify(data),
     }).catch((err) => {
-        console.warn(`[w2f-mc] post(${endpoint}) failed`, err);
+        console.warn(`[w2f-mc] post(${endpoint}) failed:`, err);
     });
 }
 
@@ -131,29 +133,40 @@ function pad2(n) {
     return n < 10 ? `0${n}` : String(n);
 }
 
-/* ============================================================
- * Toast surface (used by spawn errors + Lua-side W2F.Nui.Toast).
- * ============================================================ */
-let toastContainer = null;
-function ensureToastContainer() {
-    if (toastContainer) return toastContainer;
-    toastContainer = document.createElement('div');
-    toastContainer.id = 'w2fToasts';
-    toastContainer.className = 'w2f-toasts';
-    toastContainer.setAttribute('aria-live', 'polite');
-    toastContainer.setAttribute('aria-atomic', 'false');
-    document.body.appendChild(toastContainer);
-    return toastContainer;
+function getInitials(name) {
+    if (!name || name === '—') return 'VP';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
+function formatMoney(val) {
+    if (typeof val === 'number') {
+        return 'R$ ' + val.toLocaleString('pt-BR');
+    }
+    if (typeof val === 'string') {
+        if (val.startsWith('$')) {
+            val = val.substring(1);
+        }
+        const num = parseFloat(val.replace(/,/g, ''));
+        if (!isNaN(num)) {
+            return 'R$ ' + num.toLocaleString('pt-BR');
+        }
+    }
+    return val || 'R$ 0';
+}
+
+/* ============================================================
+ * Toast Notification Surface (Lation Emerald)
+ * ============================================================ */
 function showToast(level, message, durationMs = 4200) {
     if (!message) return;
-    const root = ensureToastContainer();
     const node = document.createElement('div');
     node.className = `w2f-toast w2f-toast-${level || 'info'}`;
     node.textContent = String(message);
-    root.appendChild(node);
+    dom.toastsContainer.appendChild(node);
     requestAnimationFrame(() => node.classList.add('shown'));
+
     const ttl = Math.max(1500, Number(durationMs) || 4200);
     setTimeout(() => {
         node.classList.remove('shown');
@@ -163,85 +176,86 @@ function showToast(level, message, durationMs = 4200) {
 }
 
 /* ============================================================
- * Hologram
+ * Navegador de Slots (Top Bar)
  * ============================================================ */
-function applyHologramData(data) {
-    if (!data) return;
-    const name = data.name || 'Unknown';
-    state.selectedCharacterName = name;
-    dom.holoName.textContent = name;
-    dom.holoName.setAttribute('data-text', name);
-    dom.holoJob.textContent = data.job || 'Unemployed';
-    dom.holoSlot.textContent = data.slot ? pad2(data.slot) : '00';
-    dom.holoCash.textContent = data.cash || '$0';
-    dom.holoBank.textContent = data.bank || '$0';
-    dom.holoPlaytime.textContent = data.playtime || '0m';
-    dom.holoLocation.textContent = data.lastLocation || 'Unknown';
-}
+function renderSlotsNav() {
+    dom.slotsNav.innerHTML = '';
+    const max = state.maxSlots || 3;
 
-let glitchTimer = null;
-function startGlitchLoop() {
-    stopGlitchLoop();
-    const tick = () => {
-        if (!dom.hologram.classList.contains('hidden')) {
-            dom.hologram.classList.remove('glitching');
-            void dom.hologram.offsetWidth;
-            dom.hologram.classList.add('glitching');
+    for (let slot = 1; slot <= max; slot++) {
+        const char = state.characters[slot];
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'slot-pill';
+        btn.dataset.slot = slot;
+
+        if (slot === state.selectedSlot) {
+            btn.classList.add('active');
         }
-        glitchTimer = setTimeout(tick, 2200 + Math.random() * 5200);
-    };
-    glitchTimer = setTimeout(tick, 1400);
-}
 
-function stopGlitchLoop() {
-    if (glitchTimer) {
-        clearTimeout(glitchTimer);
-        glitchTimer = null;
+        if (char) {
+            btn.innerHTML = `
+                <span class="slot-pill-num">${pad2(slot)}</span>
+                <span class="slot-pill-name">${char.name || 'Cidadão'}</span>
+            `;
+            btn.addEventListener('click', () => {
+                if (state.spawnBusy || state.createBusy) return;
+                post('selectSlot', { slot: slot });
+            });
+        } else {
+            btn.classList.add('empty');
+            btn.innerHTML = `
+                <span class="slot-pill-num">${pad2(slot)}</span>
+                <span class="slot-pill-name">+ Criar Personagem</span>
+            `;
+            btn.addEventListener('click', () => {
+                if (state.spawnBusy || state.createBusy) return;
+                post('selectEmptySlot', { slot: slot });
+            });
+        }
+
+        dom.slotsNav.appendChild(btn);
     }
-    dom.hologram.classList.remove('glitching');
-}
-
-function showHologram(data) {
-    if (state.createOpen) return;
-    applyHologramData(data);
-    setVisible(dom.hologram, true);
-    dom.hologram.classList.remove('appear');
-    void dom.hologram.offsetWidth;
-    dom.hologram.classList.add('appear');
-    setVisible(dom.actionBar, true);
-    setVisible(dom.hint, false);
-    startGlitchLoop();
-}
-
-function hideHologram() {
-    setVisible(dom.hologram, false);
-    setVisible(dom.actionBar, false);
-    stopGlitchLoop();
-    if (!state.skyMode && state.selectionActive) setVisible(dom.hint, true);
-}
-
-function updateHologramPosition(payload) {
-    if (!payload || payload.visible === false) {
-        setVisible(dom.hologram, false);
-        return;
-    }
-    if (payload.data) applyHologramData(payload.data);
-    if (dom.hologram.classList.contains('hidden')) {
-        setVisible(dom.hologram, true);
-        dom.hologram.classList.remove('appear');
-        void dom.hologram.offsetWidth;
-        dom.hologram.classList.add('appear');
-    }
-    const x = Math.max(0, Math.min(1, payload.x || 0)) * 100;
-    const y = Math.max(0, Math.min(1, payload.y || 0)) * 100;
-    const scale = Math.max(0.4, Math.min(1.6, payload.scale || 1));
-    dom.hologram.style.left = `${x}%`;
-    dom.hologram.style.top = `${y}%`;
-    dom.hologram.style.transform = `translate(0, 0) scale(${scale})`;
 }
 
 /* ============================================================
- * Confirm-delete modal
+ * Dossier Panel (Ficha do Cidadão)
+ * ============================================================ */
+function applyDossierData(data) {
+    if (!data) return;
+    const name = data.name || 'Desconhecido';
+    state.selectedCharacterName = name;
+
+    dom.dossierAvatar.textContent = getInitials(name);
+    dom.dossierSlot.textContent = `SLOT ${data.slot ? pad2(data.slot) : '01'}`;
+    dom.dossierCid.textContent = data.citizenid ? `CID: ${data.citizenid}` : 'CID: —';
+    dom.dossierName.textContent = name;
+    dom.dossierJob.textContent = data.job || 'Desempregado';
+
+    dom.dossierCash.textContent = formatMoney(data.cash);
+    dom.dossierBank.textContent = formatMoney(data.bank);
+    dom.dossierPlaytime.textContent = data.playtime || '0h 0m';
+    dom.dossierLocation.textContent = data.lastLocation || 'Los Santos';
+}
+
+function showDossier(data) {
+    if (state.createOpen) return;
+    applyDossierData(data);
+    setVisible(dom.dossierPanel, true);
+    setVisible(dom.hint, false);
+    renderSlotsNav();
+}
+
+function hideDossier() {
+    setVisible(dom.dossierPanel, false);
+    if (!state.skyMode && state.selectionActive) {
+        setVisible(dom.hint, true);
+    }
+    renderSlotsNav();
+}
+
+/* ============================================================
+ * Modal de Confirmação de Exclusão
  * ============================================================ */
 function openConfirmDelete() {
     if (!state.selectedSlot || state.confirmOpen) return;
@@ -249,9 +263,9 @@ function openConfirmDelete() {
     state.lastFocus = document.activeElement;
     dom.confirmInput.value = '';
     dom.confirmDeleteBtn.disabled = true;
-    dom.confirmName.textContent = state.selectedCharacterName || 'this character';
+    dom.confirmName.textContent = state.selectedCharacterName || 'este personagem';
     setVisible(dom.confirmDelete, true);
-    setTimeout(() => dom.confirmInput.focus(), 30);
+    setTimeout(() => dom.confirmInput.focus(), 50);
 }
 
 function closeConfirmDelete() {
@@ -262,142 +276,25 @@ function closeConfirmDelete() {
     dom.confirmInput.value = '';
     dom.confirmDeleteBtn.disabled = true;
     if (state.lastFocus && document.contains(state.lastFocus)) {
-        try {
-            state.lastFocus.focus();
-        } catch (_) {
-            /* focus restoration is best-effort */
-        }
+        try { state.lastFocus.focus(); } catch (_) {}
     }
 }
 
 /* ============================================================
- * Sky picker
- * ============================================================ */
-function escapeHtml(value) {
-    return String(value ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-}
-
-function buildSkyCards(spawns) {
-    dom.skySpawnGrid.innerHTML = '';
-    (spawns || []).forEach((spawn) => {
-        const card = document.createElement('button');
-        card.type = 'button';
-        const isApartment = spawn.kind === 'apartment';
-        card.className = `sky-card${isApartment ? ' sky-card-apartment' : ''}`;
-        card.dataset.id = spawn.id;
-        card.setAttribute('aria-label', spawn.label || 'Spawn');
-        const tag = isApartment
-            ? '<span class="sky-card-tag">APARTMENT</span>'
-            : '';
-        card.innerHTML = `
-            ${tag}
-            <span class="sky-card-label">${escapeHtml(spawn.label)}</span>
-            <span class="sky-card-desc">${escapeHtml(spawn.description || '')}</span>
-        `;
-        card.addEventListener('click', () => {
-            if (state.spawnBusy) return;
-            state.spawnBusy = true;
-            card.classList.add('selected');
-            dom.skySpawnPanel.classList.add('closing');
-            //- Watchdog: if Lua never replies in 20s we recover the UI.
-            armTimer('spawn', TIMEOUTS.spawn, () => {
-                showToast('error', 'Spawn timed out, please try again.');
-                spawnFailed({ error: 'timeout' });
-            });
-            post('chooseSkySpawn', { id: spawn.id });
-        });
-        card.addEventListener('mouseenter', () => {
-            card.classList.add('hover');
-            post('previewSkySpawn', { id: spawn.id });
-        });
-        card.addEventListener('mouseleave', () => {
-            card.classList.remove('hover');
-            post('previewSkySpawn', { id: null });
-        });
-        dom.skySpawnGrid.appendChild(card);
-    });
-}
-
-function showSkySpawnOptions(data) {
-    state.skyMode = true;
-    state.spawnBusy = false;
-    clearTimer('spawn');
-    setVisible(dom.hint, false);
-    setVisible(dom.actionBar, false);
-
-    //- Accept either the legacy `{spawns}` shape or the new `{entries}` one
-    //- from W2F.Nui.BuildSkySpawnPayload.
-    const spawns = (data && (data.spawns || data.entries)) || data || [];
-    const isNew = !!(data && data.isNewCharacter);
-
-    dom.skySpawnPanel.classList.toggle('first-spawn', isNew);
-    const title = dom.skySpawnPanel.querySelector('.sky-title');
-    if (title) {
-        title.textContent =
-            (data && data.title) ||
-            (isNew ? 'Choose Your First Spawn' : 'Select Deployment Zone');
-    }
-    buildSkyCards(spawns);
-    setVisible(dom.skySpawnPanel, true);
-    dom.skySpawnPanel.classList.add('fade-in');
-    //- Reset scroll so we don't keep a stale offset between sessions.
-    dom.skySpawnGrid.scrollTop = 0;
-}
-
-function hideSkySpawnOptions() {
-    state.skyMode = false;
-    clearTimer('spawn');
-    post('previewSkySpawn', { id: null });
-    dom.skySpawnPanel.classList.remove('closing');
-    dom.skySpawnPanel.classList.remove('fade-in');
-    setVisible(dom.skySpawnPanel, false);
-}
-
-function beginSpawnSequence() {
-    if (state.spawnBusy) return;
-    state.spawnBusy = true;
-    hideHologram();
-    dom.app.classList.add('spawning');
-    armTimer('spawn', TIMEOUTS.spawn, () => {
-        showToast('error', 'Spawn timed out, please try again.');
-        spawnFailed({ error: 'timeout' });
-    });
-}
-
-function resetSelectionUI() {
-    state.selectionActive = false;
-    state.skyMode = false;
-    state.spawnBusy = false;
-    state.selectedSlot = null;
-    state.selectedCharacterName = null;
-    state.confirmBusy = false;
-    state.createBusy = false;
-    Object.keys(timers).forEach(clearTimer);
-    hideHologram();
-    hideSkySpawnOptions();
-    closeCreatePanel();
-    closeConfirmDelete();
-    dom.app.classList.remove('spawning');
-    hideApp();
-}
-
-/* ============================================================
- * Create panel
+ * Modal de Criação de Cidadão
  * ============================================================ */
 function populateNationalities(cfg) {
     if (!dom.createNationality || !cfg) return;
     dom.createNationality.innerHTML = '';
-    const list = cfg.nationalities || ['American'];
+    const list = cfg.nationalities || [
+        'Brasileiro', 'Americano', 'Canadense', 'Espanhol', 'Italiano',
+        'Francês', 'Alemão', 'Inglês', 'Japonês', 'Outro'
+    ];
     list.forEach((nat) => {
         const opt = document.createElement('option');
         opt.value = nat;
         opt.textContent = nat;
-        if (nat === (cfg.defaultNationality || list[0])) {
+        if (nat === (cfg.defaultNationality || 'Brasileiro')) {
             opt.selected = true;
         }
         dom.createNationality.appendChild(opt);
@@ -421,25 +318,28 @@ function openCreatePanel(data) {
     state.lastFocus = document.activeElement;
     document.body.classList.add('create-mode');
     closeConfirmDelete();
+
     state.createSlot = data?.slot ?? null;
     if (data?.config) state.createConfig = data.config;
     if (dom.createSlotLabel && state.createSlot != null) {
-        dom.createSlotLabel.textContent = pad2(state.createSlot);
+        dom.createSlotLabel.textContent = `SLOT ${pad2(state.createSlot)}`;
     }
+
     populateNationalities(state.createConfig || {});
     if (dom.createBirthdate && state.createConfig) {
         dom.createBirthdate.min = state.createConfig.birthdateMin || '1940-01-01';
         dom.createBirthdate.max = state.createConfig.birthdateMax || '2006-12-31';
         dom.createBirthdate.value = state.createConfig.birthdateMax || '2006-12-31';
     }
+
     showCreateError('');
     if (dom.createForm) dom.createForm.reset();
     populateNationalities(state.createConfig || {});
+
     setVisible(dom.hint, false);
-    setVisible(dom.hologram, false);
-    setVisible(dom.actionBar, false);
+    setVisible(dom.dossierPanel, false);
     setVisible(dom.createPanel, true);
-    dom.createPanel.classList.add('fade-in');
+
     setTimeout(() => {
         document.getElementById('createFirst')?.focus();
     }, 50);
@@ -451,99 +351,189 @@ function closeCreatePanel(restoreHints) {
     state.createBusy = false;
     clearTimer('create');
     document.body.classList.remove('create-mode');
+
     if (dom.createPanel) {
-        dom.createPanel.classList.remove('fade-in');
         setVisible(dom.createPanel, false);
     }
     showCreateError('');
-    if (restoreHints !== false && state.selectionActive && !state.skyMode) setVisible(dom.hint, true);
+    if (restoreHints !== false && state.selectionActive && !state.skyMode) {
+        setVisible(dom.hint, true);
+    }
     if (state.lastFocus && document.contains(state.lastFocus)) {
-        try {
-            state.lastFocus.focus();
-        } catch (_) {
-            /* best-effort */
-        }
+        try { state.lastFocus.focus(); } catch (_) {}
     }
 }
 
 /* ============================================================
- * Result handlers (envelope-aware)
+ * Spawn Picker (Zonas de Desembarque)
  * ============================================================ */
-function asEnvelope(payload) {
-    //- Accept either the new `{ok, error, payload}` shape OR the legacy
-    //- bare `{message: '...'}` shape we used before Phase 5.
-    if (payload && typeof payload === 'object' && 'ok' in payload) {
-        return {
-            ok: !!payload.ok,
-            error: payload.error || payload.message || null,
-            payload: payload.payload,
-        };
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function buildSkyCards(spawns) {
+    dom.skySpawnGrid.innerHTML = '';
+    (spawns || []).forEach((spawn) => {
+        const card = document.createElement('button');
+        card.type = 'button';
+        const isApartment = spawn.kind === 'apartment';
+        card.className = `sky-card${isApartment ? ' sky-card-apartment' : ''}`;
+        card.dataset.id = spawn.id;
+
+        const tag = isApartment
+            ? '<span class="sky-card-tag">APARTAMENTO</span>'
+            : '';
+
+        card.innerHTML = `
+            ${tag}
+            <span class="sky-card-label">${escapeHtml(spawn.label)}</span>
+            <span class="sky-card-desc">${escapeHtml(spawn.description || '')}</span>
+        `;
+
+        card.addEventListener('click', () => {
+            if (state.spawnBusy) return;
+            state.spawnBusy = true;
+            card.classList.add('selected');
+            armTimer('spawn', TIMEOUTS.spawn, () => {
+                showToast('error', 'Tempo limite de carregamento atingido. Tente novamente.');
+                spawnFailed({ error: 'timeout' });
+            });
+            post('chooseSkySpawn', { id: spawn.id });
+        });
+
+        card.addEventListener('mouseenter', () => {
+            card.classList.add('hover');
+            post('previewSkySpawn', { id: spawn.id });
+        });
+
+        card.addEventListener('mouseleave', () => {
+            card.classList.remove('hover');
+            post('previewSkySpawn', { id: null });
+        });
+
+        dom.skySpawnGrid.appendChild(card);
+    });
+}
+
+function showSkySpawnOptions(data) {
+    state.skyMode = true;
+    state.spawnBusy = false;
+    clearTimer('spawn');
+
+    setVisible(dom.hint, false);
+    setVisible(dom.dossierPanel, false);
+
+    const spawns = (data && (data.spawns || data.entries)) || data || [];
+    const isNew = !!(data && data.isNewCharacter);
+
+    if (dom.spawnTitle) {
+        dom.spawnTitle.textContent = (data && data.title) || (isNew ? 'PRIMEIRO DESEMBARQUE' : 'ZONA DE DESEMBARQUE');
     }
-    if (payload && typeof payload === 'object') {
-        return { ok: false, error: payload.message || null, payload };
-    }
-    return { ok: false, error: null, payload: null };
+
+    buildSkyCards(spawns);
+    setVisible(dom.skySpawnPanel, true);
+    dom.skySpawnGrid.scrollTop = 0;
+}
+
+function hideSkySpawnOptions() {
+    state.skyMode = false;
+    clearTimer('spawn');
+    post('previewSkySpawn', { id: null });
+    setVisible(dom.skySpawnPanel, false);
+}
+
+function beginSpawnSequence() {
+    if (state.spawnBusy) return;
+    state.spawnBusy = true;
+    hideDossier();
+    armTimer('spawn', TIMEOUTS.spawn, () => {
+        showToast('error', 'Tempo limite de carregamento esgotado.');
+        spawnFailed({ error: 'timeout' });
+    });
+}
+
+function resetSelectionUI() {
+    state.selectionActive = false;
+    state.skyMode = false;
+    state.spawnBusy = false;
+    state.selectedSlot = null;
+    state.selectedCharacterName = null;
+    state.confirmBusy = false;
+    state.createBusy = false;
+    Object.keys(timers).forEach(clearTimer);
+    hideDossier();
+    hideSkySpawnOptions();
+    closeCreatePanel();
+    closeConfirmDelete();
+    hideApp();
+}
+
+/* ============================================================
+ * Humanização de Erros em pt-BR
+ * ============================================================ */
+function humanizeError(code, fallback) {
+    if (!code) return fallback || 'Ocorreu um erro inesperado.';
+    const map = {
+        rate_limited: 'Ação realizada muito rapidamente. Aguarde um instante.',
+        denied_ownership: 'Este personagem não pertence à sua conta.',
+        missing_slot: 'Nenhum slot disponível para criação.',
+        slot_in_use: 'Este slot já está ocupado. Escolha outro.',
+        name_taken: 'Este nome já está em uso por outro cidadão.',
+        invalid_name: 'Nome inválido. Use apenas letras sem símbolos ou números.',
+        invalid_birthdate: 'Por favor, selecione uma data de nascimento válida.',
+        invalid_payload: 'Dados do formulário incorretos. Revise os campos.',
+        load_failed: 'Falha ao carregar o personagem selecionado.',
+        timeout: 'Tempo limite esgotado ao aguardar o servidor.',
+        apartment_unavailable: 'Apartamento inicial indisponível no momento.',
+        appearance_failed: 'Não foi possível salvar a personalização de roupas.',
+    };
+    return map[String(code)] || fallback || String(code);
 }
 
 function spawnFailed(data) {
     state.spawnBusy = false;
     state.skyMode = false;
     clearTimer('spawn');
-    dom.app.classList.remove('spawning');
     setVisible(dom.skySpawnPanel, false);
     setVisible(dom.hint, true);
     showApp();
-    const env = asEnvelope(data);
-    if (env.error) {
-        const msg = humanizeError(env.error, 'Spawn failed.');
-        showToast('error', msg, 5500);
-    }
+    const err = data?.error || data?.message || 'Falha ao entrar na cidade.';
+    showToast('error', humanizeError(err, 'Falha ao entrar na cidade.'), 5500);
 }
 
 function createCharacterResult(data) {
-    const env = asEnvelope(data);
     state.createBusy = false;
     clearTimer('create');
-    if (env.ok) {
-        //- Lua transitions us out of the create panel on success; we just
-        //- make sure no stale error sticks around.
+    if (data?.ok) {
         showCreateError('');
         return;
     }
-    if (env.error) {
-        showCreateError(humanizeError(env.error, 'Could not create character.'));
-    }
-}
-
-function humanizeError(code, fallback) {
-    if (!code) return fallback || 'Something went wrong.';
-    const map = {
-        rate_limited: 'You are doing that too fast — slow down a moment.',
-        denied_ownership: 'That character does not belong to you.',
-        missing_slot: 'No empty slot available.',
-        slot_in_use: 'That slot was just taken — please pick another.',
-        name_taken: 'That name is already in use.',
-        invalid_name: 'Names must contain only letters, hyphens, and apostrophes.',
-        invalid_birthdate: 'Please pick a valid date of birth.',
-        invalid_payload: 'Some details look invalid — double-check the form.',
-        load_failed: 'Could not load that character; please try another.',
-        timeout: 'Timed out waiting for the server.',
-        apartment_unavailable: 'Apartment is currently unavailable — choose another spawn.',
-        appearance_failed: 'Appearance customization did not save.',
-        unknown: fallback || 'Something went wrong.',
-    };
-    return map[String(code)] || fallback || String(code);
+    const err = data?.error || data?.message || 'Erro ao criar cidadão.';
+    showCreateError(humanizeError(err, 'Não foi possível registrar o personagem.'));
 }
 
 /* ============================================================
- * Inbound message dispatcher
+ * Message Dispatcher (Lua -> NUI)
  * ============================================================ */
 const handlers = {
     showSelection: (data) => {
         state.selectionActive = true;
         if (data?.createConfig) state.createConfig = data.createConfig;
+        if (data?.maxSlots) state.maxSlots = data.maxSlots;
         showApp();
+        renderSlotsNav();
         setVisible(dom.hint, data?.showControlHints !== false);
+    },
+
+    setCharactersList: (data) => {
+        state.characters = data?.characters || {};
+        state.maxSlots = data?.maxSlots || state.maxSlots || 3;
+        renderSlotsNav();
     },
 
     openCreateCharacter: (data) => {
@@ -555,14 +545,30 @@ const handlers = {
 
     showCharacterDetails: (data) => {
         showApp();
-        showHologram(data);
+        state.selectedSlot = data?.slot ?? state.selectedSlot;
+        if (data?.slot && !state.characters[data.slot]) {
+            state.characters[data.slot] = data;
+        }
+        showDossier(data);
     },
 
-    hideCharacterDetails: () => hideHologram(),
+    hideCharacterDetails: () => hideDossier(),
 
     hideSelectionHints: () => setVisible(dom.hint, false),
 
-    updateHologram: (payload) => updateHologramPosition(payload),
+    updateHologram: (payload) => {
+        // Compatibilidade com eventos do hud.lua
+        if (!payload || payload.visible === false) {
+            hideDossier();
+            return;
+        }
+        if (payload.data) {
+            applyDossierData(payload.data);
+            state.selectedSlot = payload.data.slot ?? state.selectedSlot;
+            setVisible(dom.dossierPanel, true);
+            renderSlotsNav();
+        }
+    },
 
     showSkySpawnOptions: (data) => {
         showApp();
@@ -580,10 +586,11 @@ const handlers = {
         document.body.dataset.selectedSlot = state.selectedSlot ?? '';
 
         if (state.selectedSlot === null) {
-            hideHologram();
+            hideDossier();
             closeConfirmDelete();
             state.selectedCharacterName = null;
         }
+        renderSlotsNav();
     },
 
     beginSpawnSequence: () => beginSpawnSequence(),
@@ -615,31 +622,35 @@ const handlers = {
         state.confirmBusy = false;
         clearTimer('confirm');
         closeConfirmDelete();
+        if (state.selectedSlot) {
+            delete state.characters[state.selectedSlot];
+        }
+        hideDossier();
+        renderSlotsNav();
+        showToast('info', 'Registro civil excluído com sucesso.');
     },
 
     characterDeleteFailed: (data) => {
         state.confirmBusy = false;
         clearTimer('confirm');
         dom.confirmDeleteBtn.disabled = false;
-        showToast('error', data?.error || 'Failed to delete character.');
+        showToast('error', data?.error || 'Falha ao excluir personagem.');
     },
 };
 
 window.addEventListener('message', (event) => {
     const { action, data } = event.data || {};
     const handler = handlers[action];
-
     if (!handler) return;
-
     try {
         handler(data);
     } catch (err) {
-        console.warn(`[w2f-mc] handler ${action} threw`, err);
+        console.warn(`[w2f-mc] handler ${action} threw:`, err);
     }
 });
 
 /* ============================================================
- * Button wiring
+ * Event Listeners & Wiring
  * ============================================================ */
 dom.spawnBtn.addEventListener('click', () => {
     if (state.spawnBusy || state.selectedSlot === null) return;
@@ -663,19 +674,21 @@ dom.confirmCancelBtn?.addEventListener('click', () => {
 });
 
 dom.confirmInput?.addEventListener('input', () => {
-    dom.confirmDeleteBtn.disabled =
-        dom.confirmInput.value.trim().toUpperCase() !== 'DELETE';
+    const val = dom.confirmInput.value.trim().toUpperCase();
+    dom.confirmDeleteBtn.disabled = (val !== 'DELETAR' && val !== 'DELETE');
 });
 
 dom.confirmDeleteBtn?.addEventListener('click', () => {
     if (state.confirmBusy) return;
-    if (dom.confirmInput.value.trim().toUpperCase() !== 'DELETE') return;
+    const val = dom.confirmInput.value.trim().toUpperCase();
+    if (val !== 'DELETAR' && val !== 'DELETE') return;
+
     state.confirmBusy = true;
     dom.confirmDeleteBtn.disabled = true;
     armTimer('confirm', TIMEOUTS.confirm, () => {
         state.confirmBusy = false;
         dom.confirmDeleteBtn.disabled = false;
-        showToast('error', 'Delete timed out — please retry.');
+        showToast('error', 'Tempo limite atingido. Tente novamente.');
     });
     post('deleteCharacter');
 });
@@ -691,20 +704,31 @@ dom.createForm?.addEventListener('submit', (e) => {
     if (state.createBusy || state.createSlot == null) return;
     state.createBusy = true;
     showCreateError('');
+
     const firstname = document.getElementById('createFirst')?.value?.trim();
     const lastname = document.getElementById('createLast')?.value?.trim();
     const nationality = dom.createNationality?.value;
-    const gender = dom.createGender?.value;
+    const gender = document.querySelector('input[name="gender"]:checked')?.value || '0';
     const birthdate = dom.createBirthdate?.value;
+
     if (!firstname || !lastname || !birthdate) {
         state.createBusy = false;
-        showCreateError('Please fill in all required fields.');
+        showCreateError('Por favor, preencha todos os campos obrigatórios.');
         return;
     }
+
+    const nameRegex = /^[A-Za-zÀ-ÖØ-öø-ÿ\s'-]{2,24}$/;
+    if (!nameRegex.test(firstname) || !nameRegex.test(lastname)) {
+        state.createBusy = false;
+        showCreateError('Nomes devem conter apenas letras (2 a 24 caracteres), sem símbolos ou números.');
+        return;
+    }
+
     armTimer('create', TIMEOUTS.create, () => {
         state.createBusy = false;
-        showCreateError('Timed out — please try again.');
+        showCreateError('Tempo limite esgotado. Tente novamente.');
     });
+
     post('submitCreateCharacter', {
         slot: state.createSlot,
         firstname,
@@ -716,11 +740,10 @@ dom.createForm?.addEventListener('submit', (e) => {
 });
 
 /* ============================================================
- * Keyboard
+ * Keyboard Management
  * ============================================================ */
 document.addEventListener('keydown', (e) => {
     if (state.skyMode || state.spawnBusy) {
-        //- Allow Escape to abort an in-flight spawn (Lua-side recoverable).
         if (state.skyMode && e.key === 'Escape' && !state.spawnBusy) {
             post('cancelSkySpawn');
         }
@@ -729,18 +752,8 @@ document.addEventListener('keydown', (e) => {
     if (state.confirmOpen) {
         if (e.key === 'Escape' && !state.confirmBusy) {
             closeConfirmDelete();
-        } else if (
-            e.key === 'Enter' &&
-            !state.confirmBusy &&
-            dom.confirmInput.value.trim().toUpperCase() === 'DELETE'
-        ) {
-            state.confirmBusy = true;
-            dom.confirmDeleteBtn.disabled = true;
-            armTimer('confirm', TIMEOUTS.confirm, () => {
-                state.confirmBusy = false;
-                dom.confirmDeleteBtn.disabled = false;
-            });
-            post('deleteCharacter');
+        } else if (e.key === 'Enter' && !state.confirmBusy && !dom.confirmDeleteBtn.disabled) {
+            dom.confirmDeleteBtn.click();
         }
         return;
     }
@@ -756,18 +769,11 @@ document.addEventListener('keydown', (e) => {
     } else if ((e.key === 'Enter' || e.key === ' ') && state.selectedSlot !== null) {
         beginSpawnSequence();
         post('pressSpawn');
-    } else if (
-        (e.key === 'Delete' || e.key === 'Del') &&
-        state.selectedSlot !== null &&
-        !state.createOpen
-    ) {
+    } else if ((e.key === 'Delete' || e.key === 'Del') && state.selectedSlot !== null) {
         openConfirmDelete();
     }
 });
 
-/* ============================================================
- * Boot
- * ============================================================ */
 function notifyNuiReady() {
     post('nuiReady', {});
 }
