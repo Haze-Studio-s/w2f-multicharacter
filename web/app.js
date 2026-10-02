@@ -661,6 +661,93 @@ const handlers = {
         dom.confirmDeleteBtn.disabled = false;
         showToast('error', data?.error || 'Falha ao excluir personagem.');
     },
+
+    /* ---- Prelúdio: Cartão do Personagem ---- */
+    showPreludeCard: (data) => {
+        const overlay = document.getElementById('preludeOverlay');
+        const card    = document.getElementById('preludeCard');
+        if (!overlay || !card) return;
+
+        overlay.classList.remove('hidden');
+        overlay.classList.add('active');
+
+        const nameEl = document.getElementById('preludeName');
+        const ageEl  = document.getElementById('preludeAge');
+        const natEl  = document.getElementById('preludeNationality');
+
+        if (nameEl) nameEl.textContent = data?.name || '—';
+        if (ageEl)  ageEl.textContent  = data?.age  ? `${data.age} anos` : '';
+        if (natEl)  natEl.textContent  = data?.nationality || '';
+
+        card.classList.remove('hidden');
+        requestAnimationFrame(() => card.classList.add('slam-in'));
+    },
+
+    showChapterCard: (data) => {
+        const preludeCard = document.getElementById('preludeCard');
+        const chapterCard = document.getElementById('chapterCard');
+        if (!chapterCard) return;
+
+        if (preludeCard) preludeCard.classList.add('fade-out');
+
+        const titleEl = document.getElementById('chapterTitle');
+        const placeEl = document.getElementById('chapterPlace');
+        const timeEl  = document.getElementById('chapterTime');
+
+        if (titleEl) titleEl.textContent = data?.title || 'Capítulo Final';
+        if (placeEl) placeEl.textContent = data?.place || 'Los Santos';
+        if (timeEl)  timeEl.textContent  = data?.time  || '';
+
+        chapterCard.classList.remove('hidden');
+        requestAnimationFrame(() => chapterCard.classList.add('diagonal-in'));
+
+        setTimeout(() => {
+            chapterCard.classList.add('diagonal-out');
+        }, (data?.durationMs || 2800) - 400);
+    },
+
+    hidePrelude: () => {
+        const overlay = document.getElementById('preludeOverlay');
+        if (overlay) {
+            overlay.classList.add('fade-out-fast');
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+                overlay.classList.remove('active', 'fade-out-fast');
+                const card    = document.getElementById('preludeCard');
+                const chapter = document.getElementById('chapterCard');
+                if (card)    { card.classList.remove('slam-in', 'fade-out', 'hidden'); card.classList.add('hidden'); }
+                if (chapter) { chapter.classList.remove('diagonal-in', 'diagonal-out', 'hidden'); chapter.classList.add('hidden'); }
+            }, 400);
+        }
+    },
+
+    /* ---- Chegada: Legendas de história ---- */
+    showArrivalSubtitle: (data) => {
+        const el   = document.getElementById('arrivalSubtitle');
+        const text = document.getElementById('arrivalSubtitleText');
+        if (!el || !text) return;
+
+        text.textContent = data?.text || '';
+        el.classList.remove('hidden', 'subtitle-hide');
+        el.classList.add('subtitle-show');
+
+        const ms = data?.durationMs || 3000;
+        setTimeout(() => {
+            el.classList.add('subtitle-hide');
+            setTimeout(() => {
+                el.classList.add('hidden');
+                el.classList.remove('subtitle-show', 'subtitle-hide');
+            }, 600);
+        }, ms - 600);
+    },
+
+    hideArrivalSubtitle: () => {
+        const el = document.getElementById('arrivalSubtitle');
+        if (el) {
+            el.classList.add('hidden');
+            el.classList.remove('subtitle-show', 'subtitle-hide');
+        }
+    },
 };
 
 window.addEventListener('message', (event) => {
@@ -754,6 +841,8 @@ dom.createForm?.addEventListener('submit', (e) => {
         showCreateError('Tempo limite esgotado. Tente novamente.');
     });
 
+    const arrivalId = document.querySelector('input[name="arrivalId"]:checked')?.value || 'none';
+
     post('submitCreateCharacter', {
         slot: state.createSlot,
         firstname,
@@ -761,6 +850,7 @@ dom.createForm?.addEventListener('submit', (e) => {
         nationality,
         gender,
         birthdate,
+        arrivalId,
     });
 });
 

@@ -29,6 +29,12 @@ client_scripts {
     'client/services/streaming.lua',
     'client/services/nui_bridge.lua',
     'client/services/character_load.lua',
+    -- Arrival: prelúdio + orquestrador (carregam antes das histórias)
+    'client/services/prelude.lua',
+    'client/services/arrival.lua',
+    -- Histórias de chegada (registradas após o orquestrador)
+    'client/stories/container.lua',
+    'client/stories/plane.lua',
     -- Flows / UI (the existing modules; migrated to use Core + Services).
     'client/utils.lua',
     'client/cleanup.lua',
@@ -42,9 +48,10 @@ client_scripts {
     'client/hud.lua',
     'client/spawner.lua',
     'client/main.lua',
-    -- Dev / tests (gated by Config.Debug).
+    -- Dev / tests (gated by Config.Debug)
     'client/dev/tests.lua',
 }
+
 
 server_scripts {
     '@oxmysql/lib/MySQL.lua',

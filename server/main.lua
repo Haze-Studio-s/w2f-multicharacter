@@ -386,12 +386,19 @@ local function validateCreatePayload(data)
         end
     end
 
+    --- arrivalId: identificador da história de chegada escolhida pelo jogador.
+    --- Whitelist de valores aceitos; qualquer valor inválido cai em 'none'.
+    local VALID_ARRIVALS = { container = true, plane = true, none = true }
+    local arrivalId = tostring(data.arrivalId or 'none')
+    if not VALID_ARRIVALS[arrivalId] then arrivalId = 'none' end
+
     return true, {
         firstname = first,
         lastname = last,
         nationality = nationality,
         gender = gender,
         birthdate = birthdate,
+        arrivalId = arrivalId,
     }
 end
 
@@ -777,6 +784,8 @@ lib.callback.register('w2f-multicharacter:server:createCharacter', function(sour
             gender = result.gender,
             firstname = result.firstname,
             lastname = result.lastname,
+            nationality = result.nationality,
+            arrivalId = result.arrivalId or 'none',
         }
     end)
 

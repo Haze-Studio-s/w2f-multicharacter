@@ -780,3 +780,56 @@ function Config.GetSpawnOptionsForNui(opts)
     end
     return options
 end
+
+-----------------------------------------------------------------------------
+--- Histórias de Chegada — Sistema de Prelúdio e Cenas Cinematográficas
+--- (W2F.Prelude + W2F.Arrival)
+-----------------------------------------------------------------------------
+
+--- Prelúdio: sequência de freeze de tempo + cartão do personagem + cartão
+--- de capítulo. Executado uma única vez na primeira criação de personagem.
+Config.Prelude = {
+    --- Habilitar ou desabilitar o prelúdio completo (default: true).
+    enabled = true,
+    --- Velocidade do mundo durante o freeze (0.1 = quase parado).
+    timeScale = 0.1,
+    --- Duração do cartão do personagem em millisegundos.
+    freezeDurationMs = 3500,
+    --- Duração do cartão de capítulo em millisegundos.
+    chapterCardDurationMs = 3000,
+}
+
+--- Sistema de Histórias de Chegada
+Config.Arrival = {
+    --- Habilitar ou desabilitar as histórias de chegada (default: true).
+    enabled = true,
+
+    --- Histórias disponíveis e seus destinos
+    --- 'container': Chegada clandestina pelo porto
+    --- 'plane':     Chegada de avião (cutscene nativa GTA Online)
+
+    --- Configuração da história: Contêiner do Coiote
+    container = {
+        --- Modelo do contêiner animado (prop do DLC Tuners)
+        model = 'tr_prop_tr_container_01a',
+        --- Prop de colisão física (invisível; assume a colisão quando anim começa)
+        collisionProp = 'prop_ld_container',
+        --- Coordenadas de spawn do contêiner no porto
+        --- (onde o contêiner aparece — o jogador sai andando para a frente)
+        spawnCoords = vec4(-1647.0, -3043.0, 13.9, 50.0),
+        --- Offset do interior do contêiner (onde o ped aparece inicialmente)
+        interiorOffset = vec3(0.0, -2.0, 1.2),
+        --- Offset de câmera exterior (plano das portas abrindo)
+        exteriorOffset = vec3(0.0, 5.5, 2.0),
+        --- Offset de saída do ped após as portas abrirem
+        exitOffset = vec3(0.0, 4.0, 0.0),
+        --- Dict e clip da animação de abertura das portas
+        animDict = 'container@',
+        animClip = 'action_container',
+        --- Delay em ms até as portas abrindo (dentro da animação)
+        openPhaseDelayMs = 1800,
+    },
+
+    --- Coordenadas de posição segura para cutscene do avião (área aberta)
+    planeSpawnCoords = vec4(-1037.0, -2737.0, 13.8, 0.0),
+}

@@ -235,6 +235,42 @@
                         </div>
                     </div>
 
+                    <div class="form-field">
+                        <span>História de Chegada <span class="form-hint">— Como você chegou a Los Santos?</span></span>
+                        <div class="arrival-selector" id="arrivalSelector">
+                            <label class="arrival-option" data-arrival="container">
+                                <input type="radio" name="arrivalId" value="container" id="arrivalContainer" />
+                                <span class="arrival-pill">
+                                    <span class="arrival-icon">🚢</span>
+                                    <span class="arrival-info">
+                                        <span class="arrival-label">Contêiner do Coiote</span>
+                                        <span class="arrival-hint">Viagem clandestina — estrangeiro em busca de recomeço</span>
+                                    </span>
+                                </span>
+                            </label>
+                            <label class="arrival-option" data-arrival="plane">
+                                <input type="radio" name="arrivalId" value="plane" id="arrivalPlane" />
+                                <span class="arrival-pill">
+                                    <span class="arrival-icon">✈️</span>
+                                    <span class="arrival-info">
+                                        <span class="arrival-label">Voo Comercial</span>
+                                        <span class="arrival-hint">Transferência de trabalho ou oportunidade legítima</span>
+                                    </span>
+                                </span>
+                            </label>
+                            <label class="arrival-option" data-arrival="none">
+                                <input type="radio" name="arrivalId" value="none" id="arrivalNone" checked />
+                                <span class="arrival-pill">
+                                    <span class="arrival-icon">🌃</span>
+                                    <span class="arrival-info">
+                                        <span class="arrival-label">Já estava aqui</span>
+                                        <span class="arrival-hint">Sem cena de chegada — começa direto na cidade</span>
+                                    </span>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
                     <footer class="modal-foot">
                         <button type="button" id="createCancelBtn" class="lation-btn ghost">
                             <span>Cancelar</span>
@@ -247,6 +283,7 @@
                 </form>
             </div>
         </section>
+
 
         <!-- Spawn Selector (Deployment Zone - Lation Emerald) -->
         <section id="skySpawnPanel" class="modal-overlay hidden" aria-label="Local de nascimento">
@@ -272,6 +309,49 @@
     <!-- Toast Notifications Container -->
     <div id="w2fToasts" class="w2f-toasts" aria-live="polite"></div>
 
+    <!-- =====================================================
+         PRELÚDIO: Cartão do Personagem (Fase 1)
+         Ativado via NUI action 'showPreludeCard'
+    ===================================================== -->
+    <div id="preludeOverlay" class="prelude-overlay hidden" aria-live="assertive">
+        <!-- Cartão do Personagem -->
+        <div id="preludeCard" class="prelude-card hidden">
+            <div class="prelude-card-inner">
+                <div class="prelude-name" id="preludeName">—</div>
+                <div class="prelude-details">
+                    <span id="preludeAge" class="prelude-typed"></span>
+                    <span class="prelude-sep">·</span>
+                    <span id="preludeNationality" class="prelude-typed"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cartão de Capítulo (diagonal) -->
+        <div id="chapterCard" class="chapter-card hidden">
+            <div class="chapter-diagonal-in">
+                <div class="chapter-eyebrow">CAPÍTULO FINAL</div>
+                <div class="chapter-title" id="chapterTitle">—</div>
+                <div class="chapter-meta">
+                    <span id="chapterPlace"></span>
+                    <span class="chapter-sep">·</span>
+                    <span id="chapterTime"></span>
+                </div>
+            </div>
+            <!-- Barras de cinema (letterbox) -->
+            <div class="cinema-bar cinema-bar-top"></div>
+            <div class="cinema-bar cinema-bar-bot"></div>
+        </div>
+    </div>
+
+    <!-- =====================================================
+         CHEGADA: Legenda de história
+         Ativado via NUI action 'showArrivalSubtitle'
+    ===================================================== -->
+    <div id="arrivalSubtitle" class="arrival-subtitle hidden" aria-live="polite">
+        <p id="arrivalSubtitleText"></p>
+    </div>
+
     <script src="app.js"></script>
 </body>
 </html>
+

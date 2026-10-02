@@ -966,3 +966,263 @@ html, body {
     .dossier-panel { right: 1rem; width: min(22rem, 94vw); }
     .form-row { grid-template-columns: 1fr; }
 }
+
+/* =====================================================================
+   PRELÚDIO — Cartão do Personagem + Cartão de Capítulo
+   ===================================================================== */
+
+/* Overlay de fundo: cobre tudo, fundo preto */
+.prelude-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+.prelude-overlay.hidden { display: none; }
+.prelude-overlay.fade-out-fast {
+    animation: preludeFadeOut 0.4s ease forwards;
+}
+@keyframes preludeFadeOut {
+    to { opacity: 0; }
+}
+
+/* Cartão do Personagem — bate na tela como se fosse uma título de filme */
+.prelude-card {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transform: scale(1.12);
+    transition: opacity 0.05s, transform 0.05s;
+}
+.prelude-card.slam-in {
+    opacity: 1;
+    transform: scale(1);
+    transition: opacity 0.08s cubic-bezier(0.2, 0.8, 0.4, 1),
+                transform 0.08s cubic-bezier(0.2, 0.8, 0.4, 1);
+}
+.prelude-card.fade-out {
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.prelude-card-inner {
+    text-align: center;
+    padding: 2rem 4rem;
+    border-top: 2px solid var(--accent);
+    border-bottom: 2px solid var(--accent);
+}
+.prelude-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(2.2rem, 5vw, 3.5rem);
+    font-weight: 800;
+    color: var(--content-heading);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-shadow: 0 0 40px var(--accent-glow);
+    line-height: 1;
+    margin-bottom: 0.5rem;
+}
+.prelude-details {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--content-secondary);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+.prelude-sep {
+    color: var(--accent);
+    opacity: 0.7;
+}
+.prelude-typed {
+    /* Sem animação de digitação para evitar complexidade; texto aparece com o cartão */
+}
+
+/* Cartão de Capítulo — entra e sai na diagonal */
+.chapter-card {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding-left: 8vw;
+    overflow: hidden;
+}
+.chapter-card.hidden { display: none; }
+
+.chapter-diagonal-in {
+    opacity: 0;
+    transform: translateX(-120px) skewX(-6deg);
+    transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.chapter-card.diagonal-in .chapter-diagonal-in {
+    opacity: 1;
+    transform: translateX(0) skewX(0deg);
+}
+.chapter-card.diagonal-out .chapter-diagonal-in {
+    opacity: 0;
+    transform: translateX(200px) skewX(6deg);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.chapter-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.25em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 0.6rem;
+}
+.chapter-title {
+    font-family: 'Inter', sans-serif;
+    font-size: clamp(1.6rem, 3.5vw, 2.8rem);
+    font-weight: 800;
+    color: var(--content-heading);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1.1;
+    margin-bottom: 0.5rem;
+}
+.chapter-meta {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--content-muted);
+    letter-spacing: 0.1em;
+}
+.chapter-sep { color: var(--accent); opacity: 0.6; }
+
+/* Barras de cinema (letterbox) */
+.cinema-bar {
+    position: absolute;
+    left: 0; right: 0;
+    height: 10vh;
+    background: #000;
+    z-index: 1;
+}
+.cinema-bar-top { top: 0; }
+.cinema-bar-bot { bottom: 0; }
+
+/* =====================================================================
+   CHEGADA — Legendas de História
+   ===================================================================== */
+.arrival-subtitle {
+    position: fixed;
+    bottom: 12vh;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 8500;
+    max-width: 70vw;
+    text-align: center;
+    pointer-events: none;
+}
+.arrival-subtitle.hidden { display: none; }
+
+.arrival-subtitle p {
+    font-family: 'Inter', sans-serif;
+    font-size: clamp(0.95rem, 2vw, 1.15rem);
+    font-weight: 500;
+    color: #ffffff;
+    background: rgba(0, 0, 0, 0.72);
+    border-left: 3px solid var(--accent);
+    padding: 0.55rem 1.2rem;
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.9);
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.arrival-subtitle.subtitle-show p {
+    opacity: 1;
+    transform: translateY(0);
+}
+.arrival-subtitle.subtitle-hide p {
+    opacity: 0;
+    transform: translateY(-8px);
+    transition: opacity 0.5s ease, transform 0.4s ease;
+}
+
+/* =====================================================================
+   FORMULÁRIO DE CRIAÇÃO — Seletor de História de Chegada
+   ===================================================================== */
+.form-hint {
+    font-size: 0.78rem;
+    color: var(--content-muted);
+    font-weight: 400;
+}
+
+.arrival-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    margin-top: 0.4rem;
+}
+
+.arrival-option {
+    display: block;
+    cursor: pointer;
+}
+.arrival-option input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.arrival-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.7rem 1rem;
+    background: var(--surface-deep);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    transition: border-color 0.18s, background 0.18s, box-shadow 0.18s;
+}
+.arrival-option:hover .arrival-pill {
+    border-color: var(--line-hover);
+    background: var(--surface-hover);
+}
+.arrival-option input:checked ~ .arrival-pill {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+    box-shadow: inset 3px 0 0 var(--accent), 0 0 0 1px var(--accent-glow);
+}
+
+.arrival-icon {
+    font-size: 1.4rem;
+    flex-shrink: 0;
+    width: 2rem;
+    text-align: center;
+}
+.arrival-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+.arrival-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--content-heading);
+    letter-spacing: 0.04em;
+}
+.arrival-hint {
+    font-size: 0.75rem;
+    color: var(--content-muted);
+    font-style: italic;
+}

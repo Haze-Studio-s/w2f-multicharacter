@@ -126,12 +126,48 @@ local function saveAppearanceThenFinish(appearance, cc, gender, coords, heading)
     W2F.Creator.HideMulticharUiForAppearance('finish_creation')
     if cc.directToSpawnPicker ~= false then
         W2F.Creator.HideMulticharUiForAppearance('before_spawn_picker')
-        W2F.Creator.GoDirectlyToSpawn()
+
+        --- Prelúdio + História de Chegada (somente para personagens novos)
+        local isNew = W2F.State.isNewCharacter == true
+        local preludeEnabled = (Config.Prelude or {}).enabled ~= false
+        local arrivalEnabled = (Config.Arrival or {}).enabled ~= false
+
+        if isNew and (preludeEnabled or arrivalEnabled) then
+            local meta = W2F.State.pendingNewCharacterMeta or {}
+            -- Usa os coords temporários do slot visual como placeholder; o spawn
+            -- final é decidido pelo GoDirectlyToSpawn (sky picker ou apartamento).
+            -- O arrival.handBack chama GoDirectlyToSpawn após a cena.
+            local function runArrivalThenSpawn()
+                W2F.Arrival.Play(meta, nil, function()
+                    -- Após a história terminar, entrega para o spawn picker normal
+                    W2F.Creator.GoDirectlyToSpawn()
+                end)
+            end
+
+            if preludeEnabled and W2F.Prelude and W2F.Prelude.Play then
+                -- Coleta dados do personagem para o cartão
+                local charMeta = {
+                    name        = (meta.firstname or '') .. ' ' .. (meta.lastname or ''),
+                    age         = meta.age,
+                    nationality = meta.nationality,
+                    arrivalId   = meta.arrivalId,
+                    arrivalTitle = meta.arrivalTitle or locale('story.chapter_title') or 'Capítulo Final',
+                    arrivalPlace = meta.arrivalPlace or 'Los Santos, San Andreas',
+                }
+                W2F.Prelude.Play(charMeta, runArrivalThenSpawn)
+            else
+                runArrivalThenSpawn()
+            end
+        else
+            -- Fluxo normal (sem prelúdio): vai direto para spawn picker
+            W2F.Creator.GoDirectlyToSpawn()
+        end
     else
         W2F.Creator.ReturnToSelection(true)
     end
     return true
 end
+
 
 function W2F.Creator.OpenRegistration(visualSlot)
     if not Config.CharacterCreation or Config.CharacterCreation.enabled == false then

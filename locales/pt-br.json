@@ -73,5 +73,15 @@
     "success": {
         "character_created": "Personagem registrado com sucesso!",
         "character_deleted": "Registro excluído com sucesso."
+    },
+    "story": {
+        "chapter_title": "Capítulo Final",
+        "container_1": "O calor sufocante. O cheiro de metal enferrujado. Escuridão total.",
+        "container_2": "Dias confinado. Uma promessa de recomeço do outro lado.",
+        "container_3": "Los Santos. Fim da viagem. O começo de tudo.",
+        "plane_1": "O voo foi longo. Los Santos cresceu devagar pela janela.",
+        "plane_2": "Primeira classe ou economia — o destino é o mesmo para todos.",
+        "plane_3": "Bem-vindo a Los Santos. Não há volta."
     }
 }
+
