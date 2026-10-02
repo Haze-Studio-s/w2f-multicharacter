@@ -105,6 +105,8 @@ If selection does not open, check the server console for missing-table warnings 
 | Setting | File | Purpose |
 |---------|------|---------|
 | `Config.General.MaxCharacters` | `config.lua` | Character slots per player (match `Config.Scene.pedSlots`) |
+| `Config.UI.brandTitle` | `config.lua` | Nome/marca do servidor exibido no topo (default: 'Haze Studio') |
+| `Config.UI.brandSubtitle` | `config.lua` | Subtítulo do topo (default: 'Seleção de Cidadão') |
 | `Config.Spawns` | `config.lua` | Spawn locations in the sky picker |
 | `Config.CharacterCreation` | `config.lua` | Name/DOB limits, apartment vs spawn-picker flow |
 | `Config.Debug` | `config.lua` | Dev commands (`/w2fmc_open`, `/w2fmc_state`, etc.) |
