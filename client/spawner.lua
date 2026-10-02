@@ -247,7 +247,12 @@ end
 -----------------------------------------------------------------------------
 local function buildSpawnCardsForNui()
     local isNew = W2F.State.isNewCharacter == true
-    local spawns = Config.GetSpawnOptionsForNui({ newCharacter = isNew })
+    local char = W2F.State.selectedCharacter
+    local charJob = char and (char.job or (char.charinfo and char.charinfo.job))
+    local spawns = Config.GetSpawnOptionsForNui({
+        newCharacter = isNew,
+        job = charJob,
+    })
     if not isNew then return spawns end
 
     local apt = Config.Apartments

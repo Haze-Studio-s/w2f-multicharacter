@@ -607,28 +607,37 @@ Config.SpawnCinematic = {
 Config.Spawns = {
     {
         id = 'last',
-        label = 'Last Location',
+        label = 'Última Localização',
         type = 'last',
         fallback = 'public',
-        description = 'Return to your saved position.',
+        description = 'Retorne à sua última posição salva na cidade.',
     },
     {
         id = 'police',
-        label = 'Police Station',
+        label = 'Departamento de Polícia',
         coords = vec4(441.23, -981.89, 30.69, 90.0),
-        description = 'Spawn near the main police station.',
-    },
-    {
-        id = 'public',
-        label = 'Public Centre',
-        coords = vec4(215.76, -810.12, 30.73, 160.0),
-        description = 'Spawn in the central public area.',
+        description = 'Apresente-se no departamento principal de polícia.',
+        jobs = { ['police'] = true, ['sheriff'] = true, ['state'] = true },
     },
     {
         id = 'hospital',
-        label = 'Hospital',
+        label = 'Hospital Central',
         coords = vec4(298.54, -584.41, 43.26, 70.0),
-        description = 'Spawn near medical services.',
+        description = 'Apresente-se no centro médico / hospital.',
+        jobs = { ['ambulance'] = true, ['ems'] = true, ['doctor'] = true },
+    },
+    {
+        id = 'firefighter',
+        label = 'Corpo de Bombeiros',
+        coords = vec4(1194.27, -1457.12, 34.86, 90.0),
+        description = 'Apresente-se no quartel do corpo de bombeiros.',
+        jobs = { ['firefighter'] = true, ['fire'] = true },
+    },
+    {
+        id = 'public',
+        label = 'Centro da Cidade',
+        coords = vec4(215.76, -810.12, 30.73, 160.0),
+        description = 'Desembarque na praça central de Los Santos.',
     },
 }
 
@@ -637,7 +646,7 @@ Config.MaxCharacters = Config.General.MaxCharacters
 
 Config.Spawn = {
     skySpawnEnabled = true,
-    allowedSpawnPoints = { 'last', 'police', 'public', 'hospital' },
+    allowedSpawnPoints = { 'last', 'police', 'public', 'hospital', 'firefighter' },
     lastLocationFallback = 'public',
     flyTimeMs = Config.SpawnCinematic.flyDurationMs,
     freezeTimeMs = Config.SpawnCinematic.hoverDurationMs,
@@ -757,20 +766,51 @@ function Config.GetRecommendedCameraDistance()
     return distance
 end
 
----@param opts? table { newCharacter = boolean }
+---@param opts? table { newCharacter = boolean, job = string|table }
 function Config.GetSpawnOptionsForNui(opts)
-    local newOnly = type(opts) == 'table' and opts.newCharacter == true
+    opts = opts or {}
+    local newOnly = opts.newCharacter == true
+
+    local rawJob = opts.job
+    local jobName = 'unemployed'
+    if type(rawJob) == 'table' then
+        jobName = tostring(rawJob.name or rawJob.type or 'unemployed'):lower()
+    elseif type(rawJob) == 'string' then
+        jobName = rawJob:lower()
+    end
+
+    local isEmergency = (jobName == 'police' or jobName == 'sheriff' or jobName == 'state'
+        or jobName == 'ambulance' or jobName == 'ems' or jobName == 'doctor'
+        or jobName == 'firefighter' or jobName == 'fire')
+
     local options = {}
     for i = 1, #Config.Spawns do
         local spawn = Config.Spawns[i]
-        --- Brand-new characters have no "last location" to return to yet, so
-        --- hide the card to keep the first-spawn picker focused on real
-        --- starter choices (default locations + apartments).
-        local skip = false
+        local include = true
+
         if newOnly and (spawn.type == 'last' or spawn.id == 'last') then
-            skip = true
+            include = false
+        elseif not newOnly then
+            if spawn.id == 'last' then
+                include = true
+            elseif isEmergency then
+                -- Jogadores de emergência (polícia, médico, bombeiro): vêem APENAS 'last' e o spawn do seu respectivo trabalho
+                if spawn.jobs and spawn.jobs[jobName] then
+                    include = true
+                else
+                    include = false
+                end
+            else
+                -- Jogadores sem trabalho governamental/emergência: vêem APENAS 'last' e 'public' (Centro da Cidade)
+                if spawn.id == 'public' then
+                    include = true
+                else
+                    include = false
+                end
+            end
         end
-        if not skip then
+
+        if include then
             options[#options + 1] = {
                 id = spawn.id,
                 label = spawn.label,
