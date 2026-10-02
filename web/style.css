@@ -97,23 +97,11 @@ html, body {
 }
 
 .vignette {
-    display: none;
+    display: none !important;
 }
 
 .bg-grid {
-    position: absolute;
-    inset: auto 0 0 0;
-    height: 30vh;
-    background-image:
-        linear-gradient(to right, rgba(16, 185, 129, 0.04) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(16, 185, 129, 0.04) 1px, transparent 1px);
-    background-size: 50px 50px;
-    transform: perspective(600px) rotateX(65deg) translateY(-2vh);
-    transform-origin: center bottom;
-    mask-image: linear-gradient(to top, black 20%, transparent 90%);
-    -webkit-mask-image: linear-gradient(to top, black 20%, transparent 90%);
-    opacity: 0.6;
-    pointer-events: none;
+    display: none !important;
 }
 
 /* =====================================================================
@@ -136,13 +124,11 @@ html, body {
     align-items: center;
     gap: 0.85rem;
     padding: 0.65rem 1.15rem;
-    background: rgba(20, 21, 26, 0.88);
+    background: rgba(20, 21, 26, 0.94);
     border: 1px solid var(--line);
     border-radius: var(--radius);
     box-shadow: var(--panel-shadow);
     box-shadow: inset 3px 0 0 var(--accent);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
 }
 
 .brand-logo {
@@ -178,12 +164,10 @@ html, body {
     display: flex;
     align-items: center;
     gap: 0.65rem;
-    background: rgba(18, 19, 24, 0.85);
+    background: rgba(18, 19, 24, 0.92);
     padding: 0.35rem 0.65rem;
     border-radius: var(--radius);
     border: 1px solid var(--line);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
 }
 

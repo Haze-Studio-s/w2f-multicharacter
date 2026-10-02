@@ -1244,9 +1244,8 @@ end)
 lib.callback.register('w2f-multicharacter:server:selectCharacter', function(source, citizenid)
     local s = ensureSession(source)
     local now = GetGameTimer()
-    if now - s.lastSelectAt < SELECT_COOLDOWN_MS then
-        if Config.Debug then print(('[w2f-multicharacter] selectCharacter cooldown src=%s'):format(source)) end
-        return false
+    if now - s.lastSelectAt < 50 then
+        return true
     end
     s.lastSelectAt = now
 

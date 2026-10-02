@@ -1232,14 +1232,19 @@ function W2F.Characters.SelectSlot(slot, entry, force)
     W2F.SendNui('showCharacterDetails', payload)
     W2F.SendNui('updateSelectedPed', { slot = slot })
 
-    local accepted = lib.callback.await('w2f-multicharacter:server:selectCharacter', false, citizenid)
-    if not accepted then
-        W2F.PlayFrontendSound('ERROR')
-        W2F.Characters.ClearSelection()
-        return
-    end
-
-    W2F.PlayW2FSound(Config.Audio.detailsOpen)
+    --- Server-side selection notification / validation runs asynchronously
+    --- so the client preview UI is never blocked or closed by latency/rate-limit.
+    CreateThread(function()
+        local accepted = lib.callback.await('w2f-multicharacter:server:selectCharacter', false, citizenid)
+        if not accepted then
+            --- Whitelist rejection or invalid session: warn user but only clear if still selecting this char
+            if W2F.State.selectedSlot == slot then
+                W2F.PlayFrontendSound('ERROR')
+            end
+        else
+            W2F.PlayW2FSound(Config.Audio.detailsOpen)
+        end
+    end)
 end
 
 --- Seleciona automaticamente o primeiro personagem ativo ou o último jogado
