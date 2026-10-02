@@ -6,6 +6,8 @@
 const dom = {
     app: document.getElementById('app'),
     topBar: document.getElementById('topBar'),
+    brandTitle: document.getElementById('brandTitle'),
+    brandSubtitle: document.getElementById('brandSubtitle'),
     slotsNav: document.getElementById('slotsNav'),
     hint: document.getElementById('hint'),
 
@@ -529,6 +531,8 @@ const handlers = {
         state.selectionActive = true;
         if (data?.createConfig) state.createConfig = data.createConfig;
         if (data?.maxSlots) state.maxSlots = data.maxSlots;
+        if (data?.brandTitle && dom.brandTitle) dom.brandTitle.textContent = data.brandTitle;
+        if (data?.brandSubtitle && dom.brandSubtitle) dom.brandSubtitle.textContent = data.brandSubtitle;
         showApp();
         renderSlotsNav();
         setVisible(dom.hint, data?.showControlHints !== false);

@@ -566,6 +566,8 @@ Config.Interaction = {
 }
 
 Config.UI = {
+    brandTitle = 'Haze Studio',
+    brandSubtitle = 'Seleção de Cidadão',
     hologramEnabled = true,
     animationSpeed = 0.52,
     detailsPosition = 'right',

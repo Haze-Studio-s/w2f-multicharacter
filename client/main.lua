@@ -282,7 +282,9 @@ function W2F.EnterSelection(reason)
             and W2F.Nui.BuildSelectionPayload()
             or {
                 maxSlots = #Config.Scene.pedSlots,
-                showControlHints = Config.UI.showControlHints,
+                showControlHints = Config.UI and Config.UI.showControlHints,
+                brandTitle = (Config.UI and Config.UI.brandTitle) or 'Haze Studio',
+                brandSubtitle = (Config.UI and Config.UI.brandSubtitle) or 'Seleção de Cidadão',
             }
         local function pushCharactersList()
             local list = {}

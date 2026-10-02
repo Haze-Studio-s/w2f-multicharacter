@@ -92,9 +92,12 @@ end
 --- in main.lua / spawner.lua / bootstrap.lua.
 function W2F.Nui.BuildSelectionPayload()
     local createCfg = Config.CharacterCreation or {}
+    local uiCfg = Config.UI or {}
     return {
         maxSlots = #Config.Scene.pedSlots,
-        showControlHints = Config.UI.showControlHints,
+        showControlHints = uiCfg.showControlHints,
+        brandTitle = uiCfg.brandTitle or 'Haze Studio',
+        brandSubtitle = uiCfg.brandSubtitle or 'Seleção de Cidadão',
         canCreate = createCfg.enabled ~= false,
         createConfig = {
             nationalities = createCfg.nationalities,
