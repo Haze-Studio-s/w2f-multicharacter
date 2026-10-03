@@ -155,7 +155,7 @@ local function saveAppearanceThenFinish(appearance, cc, gender, coords, heading)
                     age          = meta.age or '—',
                     nationality  = meta.nationality or 'American',
                     arrivalId    = meta.arrivalId or 'none',
-                    arrivalTitle = meta.arrivalTitle or locale('story.chapter_title') or 'Capítulo Final',
+                    arrivalTitle = meta.arrivalTitle or (type(locale) == 'function' and locale('story.chapter_title')) or 'Capítulo Final',
                     arrivalPlace = meta.arrivalPlace or 'Los Santos, San Andreas',
                 }
                 W2F.Prelude.Play(charMeta, runArrivalThenSpawn)

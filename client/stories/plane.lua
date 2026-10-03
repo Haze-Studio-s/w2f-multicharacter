@@ -17,10 +17,18 @@ end
 function W2F.Arrival.Plane(ctx, spawnCoords)
     dbg('[plane] historia de aviao iniciando')
 
+    local function getSub(key, fallback)
+        if type(locale) == 'function' then
+            local ok, res = pcall(locale, key)
+            if ok and res and res ~= key then return res end
+        end
+        return fallback
+    end
+
     local subtitles = {
-        locale('story.plane_1') ~= 'story.plane_1' and locale('story.plane_1') or 'O voo foi longo. Los Santos cresceu pela janela.',
-        locale('story.plane_2') ~= 'story.plane_2' and locale('story.plane_2') or 'Primeira classe ou economia — o destino é o mesmo.',
-        locale('story.plane_3') ~= 'story.plane_3' and locale('story.plane_3') or 'Bem-vindo a Los Santos. Não há volta.',
+        getSub('story.plane_1', 'O voo foi longo. Los Santos cresceu pela janela.'),
+        getSub('story.plane_2', 'Primeira classe ou economia — o destino é o mesmo.'),
+        getSub('story.plane_3', 'Bem-vindo a Los Santos. Não há volta.'),
     }
 
     CreateThread(function()

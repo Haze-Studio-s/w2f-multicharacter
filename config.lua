@@ -455,10 +455,10 @@ Config.Highlight = {
     --- for many FiveM client builds; addon/custom ped models are usually fine.
     --- When true (default), freemode slots use alpha highlight only while
     --- custom ped models still get the full outline when enabled = true.
-    alphaForFreemode = true,
-    outlineColor = { r = 106, g = 217, b = 255 },
-    selectedColor = { r = 120, g = 200, b = 255 },
-    emptyHoverColor = { r = 160, g = 220, b = 255 },
+    alphaForFreemode = false,
+    outlineColor = { r = 16, g = 185, b = 129 },
+    selectedColor = { r = 52, g = 211, b = 153 },
+    emptyHoverColor = { r = 16, g = 185, b = 129 },
     --- Outline shader index (FiveM SetEntityDrawOutlineShader):
     --- 0 = thin/neutral, 1 = thick/sharper, 2 = pulse. Defaults to 1
     --- which matches the legacy look.

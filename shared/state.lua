@@ -1,5 +1,13 @@
 W2F = W2F or {}
 
+-- Inicialização segura de locale (ox_lib) com fallback
+if lib and lib.locale then
+    pcall(lib.locale)
+end
+if type(locale) ~= 'function' then
+    locale = function(k) return k end
+end
+
 --- DEPRECATED-IN-PLACE.
 ---
 --- `W2F.Selection.active` used to be the "are we in any multichar phase?" flag.

@@ -90,11 +90,19 @@ function W2F.Arrival.Container(ctx, spawnCoords)
 
     dbg('[container] historia iniciando em %s %s %s', containerCoords.x, containerCoords.y, containerCoords.z)
 
+    local function getSub(key, fallback)
+        if type(locale) == 'function' then
+            local ok, res = pcall(locale, key)
+            if ok and res and res ~= key then return res end
+        end
+        return fallback
+    end
+
     -- NUI: legendas da história
     local subtitles = {
-        locale('story.container_1') ~= 'story.container_1' and locale('story.container_1') or 'O calor sufocante. O som de metal contra metal. Silêncio.',
-        locale('story.container_2') ~= 'story.container_2' and locale('story.container_2') or 'Dias dentro da caixa de aço. Uma promessa de recomeço.',
-        locale('story.container_3') ~= 'story.container_3' and locale('story.container_3') or 'Los Santos. O fim da viagem. O começo de tudo.',
+        getSub('story.container_1', 'O calor sufocante. O som de metal contra metal. Silêncio.'),
+        getSub('story.container_2', 'Dias dentro da caixa de aço. Uma promessa de recomeço.'),
+        getSub('story.container_3', 'Los Santos. O fim da viagem. O começo de tudo.'),
     }
 
     CreateThread(function()

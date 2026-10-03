@@ -402,8 +402,38 @@ function W2F.Camera.UpdateOrbitMode()
     local pitchDelta = W2F.Camera.targetPitch - W2F.Camera.basePitch
     local dragActive = math.abs(yawDelta) > 0.01 or math.abs(pitchDelta) > 0.01
 
-    if W2F.Camera.mode == 'overview' and fixedPos then
-        local rot = W2F.Camera.GetLookAtRotation(fixedPos, focal)
+    if (W2F.Camera.mode == 'overview' or W2F.Camera.mode == 'focused') and fixedPos then
+        local targetPos = W2F.Camera.targetPos or fixedPos
+        local targetLook = W2F.Camera.targetLookAt or focal
+
+        if not W2F.Camera.currentPos then
+            W2F.Camera.currentPos = fixedPos
+        end
+        if not W2F.Camera.currentLookAt then
+            W2F.Camera.currentLookAt = targetLook
+        end
+
+        local posSmoothRate = (W2F.Camera.mode == 'focused') and 3.8 or 3.2
+        if W2F.Frame and W2F.Frame.SmoothVec3 then
+            W2F.Camera.currentPos = W2F.Frame.SmoothVec3(W2F.Camera.currentPos, targetPos, posSmoothRate, dt)
+            W2F.Camera.currentLookAt = W2F.Frame.SmoothVec3(W2F.Camera.currentLookAt, targetLook, posSmoothRate, dt)
+        else
+            local cs = 0.08
+            W2F.Camera.currentPos = vector3(
+                W2F.SmoothStep(W2F.Camera.currentPos.x, targetPos.x, cs),
+                W2F.SmoothStep(W2F.Camera.currentPos.y, targetPos.y, cs),
+                W2F.SmoothStep(W2F.Camera.currentPos.z, targetPos.z, cs)
+            )
+            W2F.Camera.currentLookAt = vector3(
+                W2F.SmoothStep(W2F.Camera.currentLookAt.x, targetLook.x, cs),
+                W2F.SmoothStep(W2F.Camera.currentLookAt.y, targetLook.y, cs),
+                W2F.SmoothStep(W2F.Camera.currentLookAt.z, targetLook.z, cs)
+            )
+        end
+
+        local curPos = W2F.Camera.currentPos
+        local curLook = W2F.Camera.currentLookAt
+        local rot = W2F.Camera.GetLookAtRotation(curPos, curLook)
         local targetYaw = rot.z + yawDelta
         local targetPitch = rot.x + pitchDelta * 0.6 --- keep pitch tame on the locked pose
 
@@ -420,7 +450,7 @@ function W2F.Camera.UpdateOrbitMode()
             W2F.Camera.smoothYaw = currentYaw + (delta * rs)
         end
 
-        SetCamCoord(W2F.Camera.handle, fixedPos.x, fixedPos.y, fixedPos.z)
+        SetCamCoord(W2F.Camera.handle, curPos.x, curPos.y, curPos.z)
         W2F.Camera.SetRotation(W2F.Camera.handle, vector3(W2F.Camera.smoothPitch, rot.y, W2F.Camera.smoothYaw))
         SetCamFov(W2F.Camera.handle, W2F.Camera.currentFov)
         --- Touch dragActive so static analyzers don't warn; consumed by
