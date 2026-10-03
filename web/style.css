@@ -1266,3 +1266,109 @@ html, body {
     color: var(--content-muted);
     font-style: italic;
 }
+
+/* =====================================================================
+   PROMPT INTERATIVO DE CHEGADA (Estilo Lation Modern UI Emerald)
+   ===================================================================== */
+.arrival-prompt {
+    position: fixed;
+    bottom: 12%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 99999;
+    pointer-events: auto;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.arrival-prompt.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, 15px);
+}
+
+.arrival-prompt-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.65rem;
+    background: rgba(14, 15, 18, 0.92);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-md);
+    padding: 1.1rem 1.8rem;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65), 0 0 24px rgba(16, 185, 129, 0.2);
+    backdrop-filter: blur(16px);
+    text-align: center;
+    min-width: 320px;
+    max-width: 480px;
+}
+
+.prompt-speaker-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--accent-bright);
+    background: var(--accent-dim);
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    letter-spacing: 0.08em;
+}
+
+.prompt-speech {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95rem;
+    color: #ffffff;
+    font-weight: 500;
+    line-height: 1.4;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+}
+
+.prompt-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--surface-deep);
+    border: 1px solid rgba(16, 185, 129, 0.5);
+    border-radius: var(--radius-sm);
+    padding: 0.6rem 1.4rem;
+    cursor: pointer;
+    transition: background 0.18s, border-color 0.18s, transform 0.12s;
+    margin-top: 0.3rem;
+}
+
+.prompt-action-btn:hover {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    transform: scale(1.03);
+}
+
+.prompt-key {
+    background: var(--accent);
+    color: #0b0d10;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 800;
+    padding: 0.25rem 0.55rem;
+    border-radius: 4px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+    animation: pulseKey 1.5s infinite;
+}
+
+.prompt-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 0.06em;
+}
+
+@keyframes pulseKey {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+        transform: scale(1.06);
+    }
+}

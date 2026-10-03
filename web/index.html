@@ -381,6 +381,21 @@
         <p id="arrivalSubtitleText"></p>
     </div>
 
+    <!-- =====================================================
+         CHEGADA: Prompt Interativo de Ação (Estilo Lation Emerald)
+         Ativado via NUI action 'showArrivalPrompt' / 'hideArrivalPrompt'
+    ===================================================== -->
+    <div id="arrivalPrompt" class="arrival-prompt hidden" aria-live="assertive">
+        <div class="arrival-prompt-card">
+            <div class="prompt-speaker-badge">COIOTE (LADO DE FORA)</div>
+            <div id="arrivalPromptSpeech" class="prompt-speech">"Ei! Chegamos a Los Santos! Empurrem a porta por dentro!"</div>
+            <button id="arrivalPromptBtn" type="button" class="prompt-action-btn">
+                <kbd class="prompt-key">E</kbd>
+                <span id="arrivalPromptLabel" class="prompt-label">FORÇAR A PORTA</span>
+            </button>
+        </div>
+    </div>
+
     <script src="app.js"></script>
 </body>
 </html>

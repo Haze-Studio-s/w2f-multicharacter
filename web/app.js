@@ -797,6 +797,22 @@ const handlers = {
             el.classList.remove('subtitle-show', 'subtitle-hide');
         }
     },
+
+    /* ---- Chegada: Prompt Interativo de Ação (Lation Emerald) ---- */
+    showArrivalPrompt: (data) => {
+        const el = document.getElementById('arrivalPrompt');
+        const speech = document.getElementById('arrivalPromptSpeech');
+        const label = document.getElementById('arrivalPromptLabel');
+        if (!el) return;
+        if (speech && data?.speech) speech.textContent = data.speech;
+        if (label && data?.label) label.textContent = data.label;
+        el.classList.remove('hidden');
+    },
+
+    hideArrivalPrompt: () => {
+        const el = document.getElementById('arrivalPrompt');
+        if (el) el.classList.add('hidden');
+    },
 };
 
 window.addEventListener('message', (event) => {
@@ -955,10 +971,30 @@ window.addEventListener('click', (e) => {
     });
 });
 
+document.getElementById('arrivalPromptBtn')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const promptEl = document.getElementById('arrivalPrompt');
+    if (promptEl) promptEl.classList.add('hidden');
+    post('arrivalPromptAction', { action: 'force_door' });
+});
+
 /* ============================================================
  * Keyboard Management
  * ============================================================ */
 document.addEventListener('keydown', (e) => {
+    // Interceptação de [E] durante o prompt interativo de chegada (ex: Contêiner)
+    if (e.key === 'e' || e.key === 'E') {
+        const promptEl = document.getElementById('arrivalPrompt');
+        if (promptEl && !promptEl.classList.contains('hidden')) {
+            e.preventDefault();
+            e.stopPropagation();
+            promptEl.classList.add('hidden');
+            post('arrivalPromptAction', { action: 'force_door' });
+            return;
+        }
+    }
+
     // Interceptar Escape SEMPRE com preventDefault/stopPropagation para nunca abrir o menu de pausa nativo do GTA V
     if (e.key === 'Escape') {
         e.preventDefault();

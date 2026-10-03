@@ -199,9 +199,63 @@ function W2F.Arrival.Container(ctx, spawnCoords)
         pcall(function()
             PlaySoundFromCoord(-1, 'PORT_HORN', containerCoords.x, containerCoords.y, containerCoords.z, 'GTAO_RANDOM_EVENTS_SOUNDSET', false, 80.0, false)
         end)
-        Wait(3000)
+        Wait(2800)
 
-        -- 6. Animação de abertura das portas
+        -- 6. INTERAÇÃO: Coiote bate do lado de fora na porta de ferro
+        pcall(function()
+            PlaySoundFrontend(-1, 'BOSS_KNOCK', 'GTAO_EXEC_SECUROSERV_NETWORK_SOUNDSET', false)
+        end)
+        Wait(400)
+        pcall(function()
+            PlaySoundFrontend(-1, 'BOSS_KNOCK', 'GTAO_EXEC_SECUROSERV_NETWORK_SOUNDSET', false)
+        end)
+        Wait(400)
+        pcall(function()
+            PlaySoundFrontend(-1, 'BOSS_KNOCK', 'GTAO_EXEC_SECUROSERV_NETWORK_SOUNDSET', false)
+        end)
+
+        -- Exibe card de interação estilo Lation Emerald na NUI
+        W2F.SendNui('showArrivalPrompt', {
+            speech = '"Ei! Chegamos a Los Santos! Empurrem a porta por dentro!"',
+            label = 'FORÇAR A PORTA',
+            key = 'E',
+        })
+
+        -- Escuta clique na NUI ou tecla [E] (INPUT_CONTEXT / Control 38)
+        local actionTriggered = false
+        local cbName = 'arrivalPromptAction'
+        RegisterNUICallback(cbName, function(data, cb)
+            actionTriggered = true
+            if cb then cb('ok') end
+        end)
+
+        local waitDeadline = GetGameTimer() + 14000
+        while not actionTriggered and GetGameTimer() < waitDeadline do
+            if IsControlJustReleased(0, 38) then -- Tecla E
+                actionTriggered = true
+                break
+            end
+            Wait(0)
+        end
+
+        W2F.SendNui('hideArrivalPrompt', {})
+
+        -- Som de trava estourando e ped forçando a porta
+        pcall(function()
+            PlaySoundFrontend(-1, 'DOOR_BUZZ', 'MP_PLAYER_APARTMENT', false)
+            PlaySoundFrontend(-1, 'Air_Defenses_Activated', 'DLC_sum20_Business_Hub_Soundset', false)
+        end)
+
+        -- Animação rápida de empurrão/impacto do ped
+        pcall(function()
+            local animDictMelee = 'melee@unarmed@streamed_core'
+            if requestAnimDict(animDictMelee, 2000) then
+                TaskPlayAnim(ped, animDictMelee, 'ground_attack_0_psycho', 2.0, 2.0, 1000, 0, 0.0, false, false, false)
+            end
+        end)
+        Wait(300)
+
+        -- 7. Animação de abertura das portas do contêiner
         local animDictOk = requestAnimDict(animDict, 5000)
         if containerProp and animDictOk then
             TaskPlayAnimOnEntity(containerProp, animDict, animClip, 1.0, 1.0, -1, 0, 0.0, false, false, false)
@@ -224,12 +278,6 @@ function W2F.Arrival.Container(ctx, spawnCoords)
         destroyCam(cam1)
         SetCamActive(cam2, true)
 
-        -- Som de impacto (guindaste pousou + batida)
-        Wait(500)
-        pcall(function()
-            PlaySoundFrontend(-1, 'BOSS_KNOCK', 'GTAO_EXEC_SECUROSERV_NETWORK_SOUNDSET', false)
-        end)
-
         -- Swap de colisão: animado perde, invisível assume
         if containerProp then
             SetEntityCollision(containerProp, false, false)
@@ -239,8 +287,8 @@ function W2F.Arrival.Container(ctx, spawnCoords)
             SetEntityVisible(collisionProp, false, false)
         end
 
-        -- 7. Portas abrindo — clarão + gaivotas
-        Wait(cfg.openPhaseDelayMs or 1800)
+        -- 8. Portas abrindo — clarão + gaivotas
+        Wait(cfg.openPhaseDelayMs or 1600)
         pcall(function() AnimpostfxPlay('DeathFailNeutralIn', 400, false) end)
         pcall(function()
             PlaySoundFrontend(-1, 'SEAGULLS_LOOP', 'ANIMALS_GENERAL_SOUNDSET', false)
