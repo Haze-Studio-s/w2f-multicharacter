@@ -736,25 +736,66 @@ function W2F.Camera.Update()
     end
 end
 
-function W2F.Camera.FocusOnPed(ped)
+function W2F.Camera.FocusOnPed(ped, slot)
     if not ped or not DoesEntityExist(ped) or not W2F.Camera.active then return end
-    local focus = (camCfg().focus or {})
-    local pedCoords = GetEntityCoords(ped)
-    --- Camera position is fully locked — only update the focal target so the
-    --- hologram tracking thread has the correct world anchor. Mode stays
-    --- 'overview' so UpdateOrbitMode keeps the camera at the fixed position.
-    W2F.Camera.focalTarget = vector3(
-        pedCoords.x,
-        pedCoords.y,
-        pedCoords.z + (focus.height or 1.4)
-    )
-    --- Subtle "zoom in" while selected, without moving the locked overview cam.
-    local focusFov = focus.fov or 35.0
-    W2F.Camera.targetFov = W2F.Clamp(focusFov, 28.0, W2F.Camera.baseFov)
+    W2F.Camera.mode = 'focused'
+    syncModeState('focused')
 
-    --- Cinematografia orgânica do Prism: micro hand-shake suave durante inspeção
+    local pedCoords = GetEntityCoords(ped)
+    local heading = GetEntityHeading(ped)
+
+    local lookAt = vector3(pedCoords.x, pedCoords.y, pedCoords.z + 0.25)
+    W2F.Camera.targetLookAt = lookAt
+    W2F.Camera.focalTarget = lookAt
+
+    local rad = math.rad(heading)
+    local fwdX = -math.sin(rad)
+    local fwdY = math.cos(rad)
+    local rightX = math.cos(rad)
+    local rightY = math.sin(rad)
+
+    -- Posição frontal a meia distância (enquadramento meio-corpo/rosto estilo mri_Qmultichar)
+    local camX = pedCoords.x + (fwdX * 2.05) + (rightX * 0.22)
+    local camY = pedCoords.y + (fwdY * 2.05) + (rightY * 0.22)
+    local camZ = pedCoords.z + 0.35
+
+    W2F.Camera.targetPos = vector3(camX, camY, camZ)
+    W2F.Camera.targetFov = 34.0
+
+    pcall(function()
+        TaskLookAtCoord(ped, camX, camY, camZ, -1, 2048, 3)
+    end)
+
     if W2F.Camera.handle and DoesCamExist(W2F.Camera.handle) then
-        pcall(ShakeCam, W2F.Camera.handle, 'HAND_SHAKE', 0.12)
+        pcall(ShakeCam, W2F.Camera.handle, 'HAND_SHAKE', 0.08)
+    end
+end
+
+function W2F.Camera.FocusOnEmptySlot(slot)
+    if not W2F.Camera.active then return end
+    W2F.Camera.mode = 'focused'
+    syncModeState('focused')
+
+    local slotCfg = Config.Scene.pedSlots[slot]
+    local coords = slotCfg and (slotCfg.coords or slotCfg)
+    if coords then
+        local lookAt = vector3(coords.x, coords.y, coords.z + 0.3)
+        W2F.Camera.targetLookAt = lookAt
+        W2F.Camera.focalTarget = lookAt
+
+        local heading = coords.w or 0.0
+        local rad = math.rad(heading)
+        local fwdX = -math.sin(rad)
+        local fwdY = math.cos(rad)
+        local rightX = math.cos(rad)
+        local rightY = math.sin(rad)
+
+        local camX = coords.x + (fwdX * 2.2) + (rightX * 0.2)
+        local camY = coords.y + (fwdY * 2.2) + (rightY * 0.2)
+        local camZ = coords.z + 0.4
+
+        W2F.Camera.targetPos = vector3(camX, camY, camZ)
+        W2F.Camera.targetFov = 38.0
     end
 end
 
@@ -762,13 +803,15 @@ function W2F.Camera.ReturnToOverview()
     if W2F.Camera.handle and DoesCamExist(W2F.Camera.handle) then
         pcall(StopCamShaking, W2F.Camera.handle, true)
     end
-    W2F.Camera.focalTarget = getOverviewFocal()
-    --- Camera never moved, so no orbit reset needed — just restore the focal
-    --- target so it tracks the ped centroid again.
-    W2F.Camera.targetFov = W2F.Camera.baseFov
     W2F.Camera.mode = 'overview'
     syncModeState('overview')
-    W2F.Camera.SnapOverview()
+
+    local fixedPos = select(1, getOverviewCameraPose())
+    W2F.Camera.targetPos = fixedPos
+    local overviewFocal = getOverviewFocal()
+    W2F.Camera.targetLookAt = overviewFocal
+    W2F.Camera.focalTarget = overviewFocal
+    W2F.Camera.targetFov = W2F.Camera.baseFov or 48.0
 end
 
 --- Force the overview camera to the configured fixed pose (or resolved orbit

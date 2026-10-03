@@ -146,6 +146,12 @@ function W2F.Interaction.UpdatePedTargeting()
             if not (Config.Hover and Config.Hover.disableHoverSound) then
                 W2F.PlayW2FSound(Config.Audio.hover)
             end
+            pcall(function()
+                local camCoords = W2F.Camera.GetCurrentCoord()
+                if camCoords and DoesEntityExist(entry.ped) then
+                    TaskLookAtCoord(entry.ped, camCoords.x, camCoords.y, camCoords.z, 1500, 2048, 3)
+                end
+            end)
             W2F.Debug('hover ped slot=%d', slot)
             W2F.Interaction.highlightDirty = true
         end
@@ -240,6 +246,63 @@ function W2F.Interaction.DisableControls()
     end
 end
 
+function W2F.Interaction.UpdateKeyboardNavigation()
+    if LocalPlayer.state.whitelist_dialog_open then return end
+    if W2F.State.isCreatePanelOpen or W2F.State.isCreatingCharacter then return end
+    if W2F.State.isIntroPlaying or W2F.State.isDraggingCamera then return end
+    if not W2F.Session.Is('selection') then return end
+
+    -- A (34) ou Seta Esquerda (174) -> Slot anterior
+    if IsDisabledControlJustPressed(0, 34) or IsDisabledControlJustPressed(0, 174) then
+        if W2F.Characters and W2F.Characters.NavigateSlot then
+            W2F.Characters.NavigateSlot(-1)
+        end
+        return
+    end
+
+    -- D (35) ou Seta Direita (175) -> Próximo slot
+    if IsDisabledControlJustPressed(0, 35) or IsDisabledControlJustPressed(0, 175) then
+        if W2F.Characters and W2F.Characters.NavigateSlot then
+            W2F.Characters.NavigateSlot(1)
+        end
+        return
+    end
+
+    -- W (32) ou Seta Cima (172) ou Enter (18 / 191) -> Confirmar Entrada ou Criar
+    if IsDisabledControlJustPressed(0, 32) or IsDisabledControlJustPressed(0, 172) or IsDisabledControlJustPressed(0, 18) or IsDisabledControlJustPressed(0, 191) then
+        if W2F.Characters and W2F.Characters.ConfirmCurrentSlot then
+            W2F.Characters.ConfirmCurrentSlot()
+        end
+        return
+    end
+
+    -- S (33) ou Seta Baixo (173) ou Esc (177 / 200) -> Voltar / Cancelar foco para Overview geral
+    if IsDisabledControlJustPressed(0, 33) or IsDisabledControlJustPressed(0, 173) or IsDisabledControlJustPressed(0, 177) or IsDisabledControlJustPressed(0, 200) then
+        if W2F.Characters and W2F.Characters.ClearSelection then
+            W2F.Characters.ClearSelection()
+        end
+        return
+    end
+
+    -- Atalhos numéricos 1 a 5 (157..161)
+    for i = 1, 5 do
+        if IsDisabledControlJustPressed(0, 156 + i) then
+            if W2F.Characters and W2F.Characters.JumpToSlot then
+                W2F.Characters.JumpToSlot(i)
+            end
+            return
+        end
+    end
+
+    -- Delete (178) -> Abrir modal de confirmação de exclusão
+    if IsDisabledControlJustPressed(0, 178) then
+        if W2F.State.selectedSlot and W2F.State.selectedCharacter then
+            W2F.SendNui('openConfirmDeleteModal', {})
+        end
+        return
+    end
+end
+
 function W2F.Interaction.StartLoop()
     if W2F.Interaction.loopRunning then
         return
@@ -268,6 +331,7 @@ function W2F.Interaction.StartLoop()
                 W2F.Interaction.UpdateCameraDrag()
                 W2F.Interaction.UpdatePedTargeting()
                 W2F.Interaction.HandleClick()
+                W2F.Interaction.UpdateKeyboardNavigation()
             end
 
             W2F.Camera.Update()
@@ -390,5 +454,28 @@ end)
 
 RegisterNUICallback('resetCamera', function(_, cb)
     W2F.Camera.ResetTargets()
+    cb('ok')
+end)
+
+RegisterNUICallback('navigateSlot', function(data, cb)
+    if W2F.State.isCreatePanelOpen or W2F.State.isCreatingCharacter then
+        cb('ok')
+        return
+    end
+    local dir = tonumber(data and data.direction) or 1
+    if W2F.Characters and W2F.Characters.NavigateSlot then
+        W2F.Characters.NavigateSlot(dir)
+    end
+    cb('ok')
+end)
+
+RegisterNUICallback('confirmSlot', function(_, cb)
+    if W2F.State.isCreatePanelOpen or W2F.State.isCreatingCharacter then
+        cb('ok')
+        return
+    end
+    if W2F.Characters and W2F.Characters.ConfirmCurrentSlot then
+        W2F.Characters.ConfirmCurrentSlot()
+    end
     cb('ok')
 end)

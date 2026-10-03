@@ -11,8 +11,8 @@ local fallbackScenarios = {
     'WORLD_HUMAN_LEANING',
 }
 
-local FREEMODE_MALE = `mp_m_freemode_01`
-local FREEMODE_FEMALE = `mp_f_freemode_01`
+local FREEMODE_MALE = joaat('mp_m_freemode_01')
+local FREEMODE_FEMALE = joaat('mp_f_freemode_01')
 
 local function isFreemodePedModel(model)
     return model == FREEMODE_MALE or model == FREEMODE_FEMALE
@@ -69,20 +69,20 @@ local function loadModel(model)
     --- valid-in-cdimage but non-ped hash (corrupted/migrated character row, or a
     --- vehicle/object hash) passed to CreatePed hard-crashes the game.
     if not hash or not IsModelValid(hash) or not IsModelInCdimage(hash) or not IsModelAPed(hash) then
-        hash = `mp_m_freemode_01`
+        hash = joaat('mp_m_freemode_01')
     end
     local ok = pcall(lib.requestModel, hash, 10000)
     if not ok or not HasModelLoaded(hash) then
-        hash = `mp_m_freemode_01`
+        hash = joaat('mp_m_freemode_01')
         pcall(lib.requestModel, hash, 10000)
     end
     return hash
 end
 
 local function resolveModel(character)
-    local model = `mp_m_freemode_01`
+    local model = joaat('mp_m_freemode_01')
     if character and character.charinfo and character.charinfo.gender == 1 then
-        model = `mp_f_freemode_01`
+        model = joaat('mp_f_freemode_01')
     end
 
     local appearance
@@ -491,7 +491,7 @@ function W2F.Characters.SpawnEmptySlotPed(slotIndex)
 
     RequestCollisionAtCoord(slotCoords.x, slotCoords.y, slotCoords.z)
 
-    local hash = loadModel(`mp_m_freemode_01`)
+    local hash = loadModel(joaat('mp_m_freemode_01'))
     local heading = resolveSlotHeading(slotCoords, slotEmote)
     local ped = CreatePed(4, hash, slotCoords.x, slotCoords.y, slotCoords.z, heading, false, true)
 
@@ -998,62 +998,51 @@ end
 --- body sample points (head / chest / torso). Sticky hover prevents flicker
 --- when moving between adjacent lineup peds.
 function W2F.Characters.FindPedAtCursor(customX, customY)
-    local interaction = Config.Interaction
-    local resX, resY = GetActiveScreenResolution()
-    if not resX or resX == 0 then resX, resY = 1920, 1080 end
+    local origin, direction = W2F.ScreenToWorldRay(customX, customY)
+    if not origin or not direction then return nil, nil end
 
-    local cursorX = customX
-    local cursorY = customY
-    if cursorX == nil or cursorY == nil then
-        local nx, ny = GetNuiCursorPosition()
-        cursorX = cursorX or nx
-        cursorY = cursorY or ny
-    end
-
-    if cursorX == nil then cursorX = resX * 0.5 end
-    if cursorY == nil then cursorY = resY * 0.5 end
-
-    local heights = (W2F.Performance and W2F.Performance.PedSampleHeights and W2F.Performance.PedSampleHeights())
-        or interaction.pedSampleHeights or { 0.35, 0.68, 1.05 }
-    local stickiness = interaction.hoverStickiness or 0.68
+    local bestSlot, bestEntry, bestDist = nil, nil, nil
     local currentHovered = W2F.State.hoveredPed
-
-    local bestSlot, bestEntry, bestScore = nil, nil, nil
-
-    local function screenDistToPoint(worldPoint)
-        local onScreen, sx, sy = W2F.World3DToScreen(worldPoint)
-        if not onScreen then return nil end
-        local px = sx * resX
-        local py = sy * resY
-        local dx = px - cursorX
-        local dy = py - cursorY
-        return math.sqrt(dx * dx + dy * dy)
-    end
+    local stickiness = (Config.Interaction and Config.Interaction.hoverStickiness) or 0.65
 
     for slot, entry in pairs(W2F.State.previewPeds) do
         local ped = entry.ped
         if ped and DoesEntityExist(ped) then
-            local radius = entry.isEmpty
-                and (interaction.pedSelectScreenRadiusEmpty or 380)
-                or (interaction.pedSelectScreenRadius or 340)
-
             local pedCoords = GetEntityCoords(ped)
-            local minDist = nil
-            for i = 1, #heights do
-                local point = vector3(pedCoords.x, pedCoords.y, pedCoords.z + heights[i])
-                local dist = screenDistToPoint(point)
-                if dist and (not minDist or dist < minDist) then
-                    minDist = dist
+            local maxAllowedDist = entry.isEmpty and 1.6 or 1.25
+
+            -- Amostra 3 alturas no corpo do Ped: pernas/quadril, peito, cabeça
+            local samplePoints = {
+                vector3(pedCoords.x, pedCoords.y, pedCoords.z + 0.35),
+                vector3(pedCoords.x, pedCoords.y, pedCoords.z + 0.85),
+                vector3(pedCoords.x, pedCoords.y, pedCoords.z + 1.25),
+            }
+
+            local pedMinDist = nil
+            for i = 1, #samplePoints do
+                local pt = samplePoints[i]
+                local v = pt - origin
+                local t = v.x * direction.x + v.y * direction.y + v.z * direction.z
+                if t > 0.3 and t < 80.0 then
+                    local closest = vector3(
+                        origin.x + direction.x * t,
+                        origin.y + direction.y * t,
+                        origin.z + direction.z * t
+                    )
+                    local dist = #(pt - closest)
+                    if not pedMinDist or dist < pedMinDist then
+                        pedMinDist = dist
+                    end
                 end
             end
 
-            if minDist and minDist <= radius then
-                local score = minDist
+            if pedMinDist and pedMinDist <= maxAllowedDist then
+                local score = pedMinDist
                 if currentHovered == ped then
                     score = score * stickiness
                 end
-                if not bestScore or score < bestScore then
-                    bestScore = score
+                if not bestDist or score < bestDist then
+                    bestDist = score
                     bestSlot = slot
                     bestEntry = entry
                 end
@@ -1065,9 +1054,7 @@ function W2F.Characters.FindPedAtCursor(customX, customY)
         return bestSlot, bestEntry
     end
 
-    --- Fallback: 3D ray cylinder for peds partially off-screen.
-    local origin, direction = W2F.ScreenToWorldRay()
-    return W2F.Characters.FindPedNearRay(origin, direction)
+    return nil, nil
 end
 
 --- Legacy ray-cylinder picker — used as fallback when screen-space misses.
@@ -1312,4 +1299,75 @@ function W2F.Characters.ClearSelection()
     end
     W2F.SendNui('hideCharacterDetails')
     W2F.SendNui('updateSelectedPed', { slot = nil })
+end
+
+--- Seleciona um slot vazio e enquadra o espaço correspondente
+function W2F.Characters.SelectEmptySlot(slot)
+    if W2F.State.isCreatePanelOpen or W2F.State.isCreatingCharacter then return end
+    W2F.SetSelected(slot, nil, nil)
+    W2F.PlayW2FSound(Config.Audio.select)
+    applySceneLighting('neutral')
+    W2F.Camera.FocusOnEmptySlot(slot)
+    W2F.Characters.RefreshHighlights()
+    if W2F.Hud and W2F.Hud.Hide then W2F.Hud.Hide() end
+    W2F.SendNui('showEmptySlotDetails', { slot = slot })
+    W2F.SendNui('updateSelectedPed', { slot = slot })
+end
+
+--- Navegação cíclica por teclado (AWSD e Setas)
+function W2F.Characters.NavigateSlot(direction)
+    if W2F.State.isCreatePanelOpen or W2F.State.isCreatingCharacter then return end
+    if not W2F.Session.Is('selection') then return end
+
+    local maxSlots = #Config.Scene.pedSlots or 3
+    local current = W2F.State.selectedSlot or 1
+    local nextSlot = current + direction
+
+    if nextSlot > maxSlots then
+        nextSlot = 1
+    elseif nextSlot < 1 then
+        nextSlot = maxSlots
+    end
+
+    local entry = W2F.State.previewPeds[nextSlot]
+    if entry and entry.character and not entry.isEmpty then
+        W2F.Characters.SelectSlot(nextSlot, entry, true)
+    else
+        W2F.Characters.SelectEmptySlot(nextSlot)
+    end
+end
+
+--- Salto direto para um slot específico (1..5)
+function W2F.Characters.JumpToSlot(slot)
+    if W2F.State.isCreatePanelOpen or W2F.State.isCreatingCharacter then return end
+    if not W2F.Session.Is('selection') then return end
+    local maxSlots = #Config.Scene.pedSlots or 3
+    if slot < 1 or slot > maxSlots then return end
+
+    local entry = W2F.State.previewPeds[slot]
+    if entry and entry.character and not entry.isEmpty then
+        W2F.Characters.SelectSlot(slot, entry, true)
+    else
+        W2F.Characters.SelectEmptySlot(slot)
+    end
+end
+
+--- Confirma o slot atual: entra na cidade se ocupado, ou abre criação se vazio
+function W2F.Characters.ConfirmCurrentSlot()
+    if W2F.State.isCreatePanelOpen or W2F.State.isCreatingCharacter then return end
+    if not W2F.Session.Is('selection') then return end
+
+    local selSlot = W2F.State.selectedSlot
+    if not selSlot then
+        selSlot = 1
+    end
+
+    local entry = W2F.State.previewPeds[selSlot]
+    if entry and entry.character and not entry.isEmpty then
+        if W2F.Spawner and W2F.Spawner.BeginSkySequence then
+            W2F.Spawner.BeginSkySequence()
+        end
+    else
+        W2F.Characters.OpenCreateForSlot(selSlot)
+    end
 end

@@ -242,8 +242,14 @@ local function vCross(a, b)
     )
 end
 
-function W2F.ScreenToWorldRay()
-    local cursorX, cursorY = GetNuiCursorPosition()
+function W2F.ScreenToWorldRay(customX, customY)
+    local cursorX = customX
+    local cursorY = customY
+    if cursorX == nil or cursorY == nil then
+        local nx, ny = GetNuiCursorPosition()
+        cursorX = cursorX or nx
+        cursorY = cursorY or ny
+    end
     local resX, resY = GetActiveScreenResolution()
     if not resX or resX == 0 or not resY or resY == 0 then
         resX, resY = 1920, 1080

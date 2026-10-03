@@ -579,6 +579,19 @@ const handlers = {
 
     hideCharacterDetails: () => hideDossier(),
 
+    showEmptySlotDetails: (data) => {
+        showApp();
+        state.selectedSlot = data?.slot ?? state.selectedSlot;
+        hideDossier();
+        renderSlotsNav();
+    },
+
+    openConfirmDeleteModal: () => {
+        if (state.selectedSlot !== null) {
+            openConfirmDelete();
+        }
+    },
+
     hideSelectionHints: () => setVisible(dom.hint, false),
 
     updateHologram: (payload) => {
@@ -918,41 +931,32 @@ document.addEventListener('keydown', (e) => {
 
     // Navegação por setas ou A/D para alternar entre slots
     if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
-        const max = state.maxSlots || 3;
-        let nextSlot = (state.selectedSlot || 0) + 1;
-        if (nextSlot > max) nextSlot = 1;
-        const char = state.characters[nextSlot];
-        if (char && !char.isEmpty && char.name) {
-            post('selectSlot', { slot: nextSlot });
-        } else {
-            post('selectEmptySlot', { slot: nextSlot });
-        }
+        post('navigateSlot', { direction: 1 });
         return;
     }
 
     if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
-        const max = state.maxSlots || 3;
-        let prevSlot = (state.selectedSlot || 2) - 1;
-        if (prevSlot < 1) prevSlot = max;
-        const char = state.characters[prevSlot];
-        if (char && !char.isEmpty && char.name) {
-            post('selectSlot', { slot: prevSlot });
-        } else {
-            post('selectEmptySlot', { slot: prevSlot });
-        }
+        post('navigateSlot', { direction: -1 });
+        return;
+    }
+
+    // W ou Seta Cima -> Confirmar Entrada ou Criar
+    if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+        post('confirmSlot');
+        return;
+    }
+
+    // S ou Seta Baixo -> Cancelar / Voltar para Overview geral
+    if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
+        post('cancelDetails');
         return;
     }
 
     // Ações de confirmação, cancelamento e exclusão
     if (e.key === 'Escape' && state.selectedSlot !== null) {
         post('cancelDetails');
-    } else if ((e.key === 'Enter' || e.key === ' ')) {
-        if (state.selectedSlot !== null) {
-            beginSpawnSequence();
-            post('pressSpawn');
-        } else {
-            post('selectSlot', { slot: 1 });
-        }
+    } else if (e.key === 'Enter') {
+        post('confirmSlot');
     } else if ((e.key === 'Delete' || e.key === 'Del') && state.selectedSlot !== null) {
         openConfirmDelete();
     }
