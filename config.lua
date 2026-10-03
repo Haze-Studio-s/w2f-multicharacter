@@ -870,12 +870,26 @@ Config.Arrival = {
         openPhaseDelayMs = 1800,
     },
 
-    --- Coordenadas de posição segura para cutscene do avião (área aberta)
-    planeSpawnCoords = vec4(-1037.0, -2737.0, 13.8, 0.0),
+    --- Coordenadas de posição segura para cutscene do avião (calçada externa LSIA)
+    planeSpawnCoords = vec4(-1037.0, -2737.0, 13.8, 330.0),
+
+    --- Configuração da história: Saída da Penitenciária de Bolingbroke
+    prison = {
+        spawnCoords = vec4(1846.50, 2586.20, 45.67, 270.0),
+        exitCoords  = vec3(1837.20, 2586.20, 45.67),
+    },
+
+    --- Configuração da história: Trem de Carga Clandestino (Estação de Davis)
+    train = {
+        spawnCoords = vec4(264.00, -1205.00, 29.28, 90.0),
+        exitCoords  = vec3(264.00, -1198.00, 29.28),
+    },
 
     --- Distribuição de itens e dinheiro conforme a história de chegada:
-    ---   * container: sem dinheiro/banco, sem documentos, % chance celular (ex: 20%), vem com cigarro/maço e isqueiro.
+    ---   * container: sem dinheiro/banco, sem documentos, % chance celular (ex: 20%), vem com 5 cigarros e isqueiro.
     ---   * plane: celular garantido, sem carteira de motorista (mas com RG/id_card), % chance cigarro (ex: 40%), dinheiro normal.
+    ---   * prison: R$ 50 de auxílio-soltura do Estado, banco zerado, RG sem CNH, 5 cigarros e isqueiro.
+    ---   * train: R$ 20 no bolso, banco zerado, água, bandagem, 2 cigarros, sem documentos formais.
     ---   * default/none: kit padrão completo (qbx_core/config/shared.lua).
     starterPerArrival = {
         container = {
@@ -896,6 +910,26 @@ Config.Arrival = {
                 { name = 'cigarette', amount = 2, chance = 40 },           -- 40% chance de ter cigarros no bolso
                 { name = 'lighter', amount = 1, chance = 40 },
                 -- Sem carteira de motorista (driver_license omitido)
+            },
+        },
+        prison = {
+            wipeCash = false,
+            setCash = 50, -- R$ 50 de auxílio-soltura do Estado
+            wipeBank = true,
+            items = {
+                { name = 'id_card', amount = 1, requireIdCardMeta = true }, -- Registro civil emitido na soltura
+                { name = 'cigarette', amount = 5 },
+                { name = 'lighter', amount = 1 },
+            },
+        },
+        train = {
+            wipeCash = false,
+            setCash = 20, -- R$ 20 amarfanhados no bolso
+            wipeBank = true,
+            items = {
+                { name = 'water', amount = 1 },
+                { name = 'bandage', amount = 1 },
+                { name = 'cigarette', amount = 2 },
             },
         },
         default = {

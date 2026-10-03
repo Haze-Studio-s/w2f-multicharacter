@@ -388,7 +388,7 @@ local function validateCreatePayload(data)
 
     --- arrivalId: identificador da história de chegada escolhida pelo jogador.
     --- Whitelist de valores aceitos; qualquer valor inválido cai em 'none'.
-    local VALID_ARRIVALS = { container = true, plane = true, none = true }
+    local VALID_ARRIVALS = { container = true, plane = true, prison = true, train = true, none = true }
     local arrivalId = tostring(data.arrivalId or 'none')
     if not VALID_ARRIVALS[arrivalId] then arrivalId = 'none' end
 
@@ -409,7 +409,7 @@ local function giveStarterItems(source, arrivalId)
         or (Config.Arrival and Config.Arrival.starterPerArrival and Config.Arrival.starterPerArrival.default)
 
     -- Controle de Dinheiro inicial conforme a história
-    if arrivalConfig and (arrivalConfig.wipeCash or arrivalConfig.wipeBank) then
+    if arrivalConfig then
         local player = exports.qbx_core:GetPlayer(source)
         if player then
             if arrivalConfig.wipeCash then
@@ -423,7 +423,23 @@ local function giveStarterItems(source, arrivalId)
                         end
                     end)
                 end
+            elseif arrivalConfig.setCash ~= nil then
+                local targetCash = tonumber(arrivalConfig.setCash) or 0
+                pcall(function() player.Functions.SetMoney('cash', targetCash, 'arrival_story_setup') end)
+                pcall(function() exports.qbx_core:SetMoney(source, 'cash', targetCash, 'arrival_story_setup') end)
+                if GetResourceState('ox_inventory') == 'started' then
+                    pcall(function()
+                        local currentCount = exports.ox_inventory:GetItem(source, 'money', nil, true) or 0
+                        local diff = targetCash - currentCount
+                        if diff > 0 then
+                            exports.ox_inventory:AddItem(source, 'money', diff)
+                        elseif diff < 0 then
+                            exports.ox_inventory:RemoveItem(source, 'money', math.abs(diff))
+                        end
+                    end)
+                end
             end
+
             if arrivalConfig.wipeBank then
                 pcall(function() player.Functions.SetMoney('bank', 0, 'arrival_story_setup') end)
                 pcall(function() exports.qbx_core:SetMoney(source, 'bank', 0, 'arrival_story_setup') end)

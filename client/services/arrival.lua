@@ -34,7 +34,13 @@ CreateThread(function()
     if W2F.Arrival.Plane then
         W2F.Arrival.Register('plane', W2F.Arrival.Plane)
     end
-    dbg('[arrival] %d historia(s) disponivel(is)', #STORY_REGISTRY)
+    if W2F.Arrival.Prison then
+        W2F.Arrival.Register('prison', W2F.Arrival.Prison)
+    end
+    if W2F.Arrival.Train then
+        W2F.Arrival.Register('train', W2F.Arrival.Train)
+    end
+    dbg('[arrival] historias registradas no sistema')
 end)
 
 --- Determina o arrivalId correto para uma nacionalidade.
@@ -108,6 +114,12 @@ function W2F.Arrival.Play(meta, spawnCoords, onDone)
             finalSpawnCoords = vec4(contCoords.x + (fwdX * dist), contCoords.y + (fwdY * dist), contCoords.z, contCoords.w)
         elseif arrivalId == 'plane' then
             finalSpawnCoords = cfg.planeSpawnCoords or vec4(-1037.0, -2737.0, 13.8, 330.0)
+        elseif arrivalId == 'prison' then
+            local prisCfg = cfg.prison or {}
+            finalSpawnCoords = prisCfg.spawnCoords or vec4(1837.20, 2586.20, 45.67, 270.0)
+        elseif arrivalId == 'train' then
+            local trainCfg = cfg.train or {}
+            finalSpawnCoords = trainCfg.spawnCoords or vec4(264.00, -1198.00, 29.28, 90.0)
         end
     end
 

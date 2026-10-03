@@ -35,6 +35,8 @@ client_scripts {
     -- Histórias de chegada (registradas após o orquestrador)
     'client/stories/container.lua',
     'client/stories/plane.lua',
+    'client/stories/prison.lua',
+    'client/stories/train.lua',
     -- Flows / UI (the existing modules; migrated to use Core + Services).
     'client/utils.lua',
     'client/cleanup.lua',
