@@ -130,13 +130,23 @@
             </div>
         </aside>
 
-        <!-- Barra Inferior de Dicas Ergonômicas -->
+        <!-- Barra Inferior de Dicas & Atalhos Ergonômicos (Clicáveis e Teclado) -->
         <div id="hint" class="hint-bar">
-            <span class="hint-item"><kbd>1, 2, 3</kbd> Slots</span>
-            <span class="hint-item"><kbd>&larr; &rarr;</kbd> Alternar</span>
-            <span class="hint-item"><kbd>Clique</kbd> Selecionar</span>
-            <span class="hint-item"><kbd>Enter</kbd> Confirmar</span>
-            <span class="hint-item"><kbd>Del</kbd> Excluir</span>
+            <button id="hintNavPrev" type="button" class="hint-item hint-btn" title="Slot Anterior">
+                <kbd>&larr; A</kbd>
+            </button>
+            <span class="hint-item">
+                <kbd>1, 2, 3</kbd> Slots
+            </span>
+            <button id="hintNavNext" type="button" class="hint-item hint-btn" title="Próximo Slot">
+                <kbd>D &rarr;</kbd>
+            </button>
+            <button id="hintConfirm" type="button" class="hint-item hint-btn primary" title="Entrar na Cidade">
+                <kbd>Enter</kbd> <span>Entrar</span>
+            </button>
+            <button id="hintDelete" type="button" class="hint-item hint-btn danger" title="Excluir Registro Civil">
+                <kbd>Del</kbd> <span>Excluir</span>
+            </button>
         </div>
 
         <!-- Modal de Confirmação de Deleção com Protocolo Seguro -->

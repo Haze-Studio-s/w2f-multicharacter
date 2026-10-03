@@ -10,6 +10,10 @@ const dom = {
     brandSubtitle: document.getElementById('brandSubtitle'),
     slotsNav: document.getElementById('slotsNav'),
     hint: document.getElementById('hint'),
+    hintNavPrev: document.getElementById('hintNavPrev'),
+    hintNavNext: document.getElementById('hintNavNext'),
+    hintConfirm: document.getElementById('hintConfirm'),
+    hintDelete: document.getElementById('hintDelete'),
 
     // Dossier Panel (Ficha do Cidadão)
     dossierPanel: document.getElementById('dossierPanel'),
@@ -205,6 +209,8 @@ function renderSlotsNav() {
             `;
             btn.addEventListener('click', () => {
                 if (state.spawnBusy || state.createBusy) return;
+                state.selectedSlot = slot;
+                showDossier(char);
                 post('selectSlot', { slot: slot });
             });
         } else {
@@ -253,7 +259,9 @@ function showDossier(data) {
     if (state.createOpen) return;
     applyDossierData(data);
     setVisible(dom.dossierPanel, true);
-    setVisible(dom.hint, false);
+    if (!state.skyMode && state.selectionActive) {
+        setVisible(dom.hint, true);
+    }
     renderSlotsNav();
 }
 
@@ -270,11 +278,14 @@ function hideDossier() {
  * ============================================================ */
 function openConfirmDelete() {
     if (!state.selectedSlot || state.confirmOpen) return;
+    const char = state.characters[state.selectedSlot];
+    const name = (char && char.name) ? char.name : (state.selectedCharacterName || 'este personagem');
+    state.selectedCharacterName = name;
     state.confirmOpen = true;
     state.lastFocus = document.activeElement;
     dom.confirmInput.value = '';
     dom.confirmDeleteBtn.disabled = true;
-    dom.confirmName.textContent = state.selectedCharacterName || 'este personagem';
+    dom.confirmName.textContent = name;
     setVisible(dom.confirmDelete, true);
     setTimeout(() => dom.confirmInput.focus(), 50);
 }
@@ -563,6 +574,9 @@ const handlers = {
         }
         state.characters = map;
         state.maxSlots = data?.maxSlots || state.maxSlots || 3;
+        if (state.selectedSlot && state.characters[state.selectedSlot] && !state.characters[state.selectedSlot].isEmpty && !state.createOpen) {
+            showDossier(state.characters[state.selectedSlot]);
+        }
         renderSlotsNav();
     },
 
@@ -632,6 +646,8 @@ const handlers = {
             hideDossier();
             closeConfirmDelete();
             state.selectedCharacterName = null;
+        } else if (state.characters[state.selectedSlot] && !state.characters[state.selectedSlot].isEmpty && !state.createOpen) {
+            showDossier(state.characters[state.selectedSlot]);
         }
         renderSlotsNav();
     },
@@ -801,6 +817,34 @@ dom.deleteBtn?.addEventListener('click', () => {
     openConfirmDelete();
 });
 
+dom.hintDelete?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (state.spawnBusy || state.createBusy || state.selectedSlot === null) return;
+    openConfirmDelete();
+});
+
+dom.hintConfirm?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (state.spawnBusy || state.createBusy || state.selectedSlot === null) return;
+    post('confirmSlot');
+});
+
+dom.hintNavPrev?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (state.spawnBusy || state.createBusy) return;
+    post('navigateSlot', { direction: -1 });
+});
+
+dom.hintNavNext?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (state.spawnBusy || state.createBusy) return;
+    post('navigateSlot', { direction: 1 });
+});
+
 dom.confirmCancelBtn?.addEventListener('click', () => {
     if (state.confirmBusy) return;
     closeConfirmDelete();
@@ -887,7 +931,9 @@ window.addEventListener('click', (e) => {
         e.target.closest('.slot-pill') ||
         e.target.closest('.lation-card') ||
         e.target.closest('.modal-card') ||
-        e.target.closest('.hint-bar')) {
+        e.target.closest('.hint-bar') ||
+        e.target.closest('.hint-btn') ||
+        e.target.closest('.hint-item')) {
         return;
     }
 

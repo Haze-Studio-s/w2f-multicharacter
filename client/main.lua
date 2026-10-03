@@ -317,7 +317,6 @@ function W2F.EnterSelection(reason)
 
         W2F.SendNui('showSelection', payload)
         pushCharactersList()
-        W2F.SendNui('hideCharacterDetails', {})
         W2F.SendNui('hideSkySpawnOptions', {})
 
         if W2F.Bootstrap then

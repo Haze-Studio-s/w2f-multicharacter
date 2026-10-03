@@ -392,9 +392,6 @@ RegisterNUICallback('clickWorld', function(data, cb)
     local cx = data and tonumber(data.x)
     local cy = data and tonumber(data.y)
     local slot, entry = W2F.Characters.FindPedAtCursor(cx, cy)
-    if not slot or not entry then
-        slot, entry = pickPedThisFrame()
-    end
 
     if slot and entry then
         if entry.character and not entry.isEmpty then
@@ -420,7 +417,7 @@ RegisterNUICallback('selectSlot', function(data, cb)
         local entry = W2F.State.previewPeds[slot]
         if entry then
             if entry.character and not entry.isEmpty then
-                W2F.Characters.SelectSlot(slot, entry)
+                W2F.Characters.SelectSlot(slot, entry, true)
             else
                 W2F.Characters.SelectEmptySlot(slot)
             end
