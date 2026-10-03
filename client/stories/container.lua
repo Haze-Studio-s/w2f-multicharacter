@@ -565,18 +565,31 @@ function W2F.Arrival.Container(ctx, spawnCoords)
             end
         end)
 
-        -- Exclui entidades temporárias criadas quando o jogador estiver distante
+        -- Exclui cena sincronizada se ainda estiver ativa
+        if s and s.doorScene then
+            pcall(function() DeleteSynchronizedScene(s.doorScene) end)
+            s.doorScene = nil
+        end
+
+        -- Exclui entidades temporárias criadas quando o jogador estiver distante ou após timeout de 60s
         for _, ent in ipairs(leftovers) do
             if DoesEntityExist(ent) then
                 CreateThread(function()
-                    while DoesEntityExist(ent) do
-                        local dist = #(GetEntityCoords(ent) - GetEntityCoords(PlayerPedId()))
+                    local lifetime = GetGameTimer() + 60000
+                    while DoesEntityExist(ent) and GetGameTimer() < lifetime do
+                        local playerPed = PlayerPedId()
+                        if not DoesEntityExist(playerPed) then
+                            DeleteEntity(ent)
+                            break
+                        end
+                        local dist = #(GetEntityCoords(ent) - GetEntityCoords(playerPed))
                         if dist > 35.0 then
                             DeleteEntity(ent)
                             break
                         end
                         Wait(1000)
                     end
+                    if DoesEntityExist(ent) then DeleteEntity(ent) end
                 end)
             end
         end
