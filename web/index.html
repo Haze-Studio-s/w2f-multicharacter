@@ -340,41 +340,48 @@
     <div id="w2fToasts" class="w2f-toasts" aria-live="polite"></div>
 
     <!-- =====================================================
-         PRELÚDIO: Cartão do Personagem (Fase 1)
-         Ativado via NUI action 'showPreludeCard'
+         CINEMA: Barras Pretas (Letterbox)
+         Ativado durante as cinemáticas de chegada
+    ===================================================== -->
+    <div id="cinemaBars" class="cinema-bars-overlay hidden">
+        <div class="cinema-bar cinema-bar-top"></div>
+        <div class="cinema-bar cinema-bar-bot"></div>
+    </div>
+
+    <!-- =====================================================
+         PRELÚDIO: Cartão do Personagem & Capítulo (Estilo MRI)
+         Ativado via NUI action 'showPreludeCard' / 'showChapterCard'
     ===================================================== -->
     <div id="preludeOverlay" class="prelude-overlay hidden" aria-live="assertive">
-        <!-- Cartão do Personagem -->
-        <div id="preludeCard" class="prelude-card hidden">
-            <div class="prelude-card-inner">
-                <div class="prelude-name" id="preludeName">—</div>
-                <div class="prelude-details">
-                    <span id="preludeAge" class="prelude-typed"></span>
-                    <span class="prelude-sep">·</span>
-                    <span id="preludeNationality" class="prelude-typed"></span>
-                </div>
+        <!-- Cartão do Personagem (Freeze Frame P&B - Lado Esquerdo) -->
+        <div id="preludeCard" class="mri-prelude-wrapper hidden">
+            <div class="mri-prelude-header">
+                <span class="mri-prelude-line"></span>
+                <span class="mri-prelude-badge">APRESENTAMOS</span>
+            </div>
+            <div class="mri-prelude-name" id="preludeName">—</div>
+            <div class="mri-prelude-details">
+                <span id="preludeAge"></span>
+                <span class="mri-prelude-dot">·</span>
+                <span id="preludeNationality"></span>
+                <span class="mri-prelude-dot">·</span>
+                <span class="mri-prelude-status">recém-chegado</span>
             </div>
         </div>
 
-        <!-- Cartão de Capítulo (diagonal) -->
-        <div id="chapterCard" class="chapter-card hidden">
-            <div class="chapter-diagonal-in">
-                <div class="chapter-eyebrow">CAPÍTULO FINAL</div>
-                <div class="chapter-title" id="chapterTitle">—</div>
-                <div class="chapter-meta">
-                    <span id="chapterPlace"></span>
-                    <span class="chapter-sep">·</span>
-                    <span id="chapterTime"></span>
-                </div>
+        <!-- Cartão de Capítulo (Tela Preta com Máquina de Escrever) -->
+        <div id="chapterCard" class="mri-chapter-wrapper hidden">
+            <div class="mri-chapter-eyebrow">CAPÍTULO FINAL</div>
+            <div class="mri-chapter-title" id="chapterTitle">O CONTÊINER</div>
+            <div class="mri-chapter-line"></div>
+            <div class="mri-chapter-meta">
+                <span id="chapterTypewriter"></span><span class="mri-cursor">_</span>
             </div>
-            <!-- Barras de cinema (letterbox) -->
-            <div class="cinema-bar cinema-bar-top"></div>
-            <div class="cinema-bar cinema-bar-bot"></div>
         </div>
     </div>
 
     <!-- =====================================================
-         CHEGADA: Legenda de história
+         CHEGADA: Legendas Cinematográficas
          Ativado via NUI action 'showArrivalSubtitle'
     ===================================================== -->
     <div id="arrivalSubtitle" class="arrival-subtitle hidden" aria-live="polite">
@@ -382,18 +389,12 @@
     </div>
 
     <!-- =====================================================
-         CHEGADA: Prompt Interativo de Ação (Estilo Lation Emerald)
-         Ativado via NUI action 'showArrivalPrompt' / 'hideArrivalPrompt'
+         CHEGADA: Badge [ENTER] PULAR (Estilo MRI)
+         Ativado via NUI action 'showArrivalSkip' / 'hideArrivalSkip'
     ===================================================== -->
-    <div id="arrivalPrompt" class="arrival-prompt hidden" aria-live="assertive">
-        <div class="arrival-prompt-card">
-            <div class="prompt-speaker-badge">COIOTE (LADO DE FORA)</div>
-            <div id="arrivalPromptSpeech" class="prompt-speech">"Ei! Chegamos a Los Santos! Empurrem a porta por dentro!"</div>
-            <button id="arrivalPromptBtn" type="button" class="prompt-action-btn">
-                <kbd class="prompt-key">E</kbd>
-                <span id="arrivalPromptLabel" class="prompt-label">FORÇAR A PORTA</span>
-            </button>
-        </div>
+    <div id="skipArrivalPrompt" class="arrival-skip-badge hidden" title="Pular cinemática">
+        <kbd class="skip-key">ENTER</kbd>
+        <span class="skip-label">PULAR</span>
     </div>
 
     <script src="app.js"></script>

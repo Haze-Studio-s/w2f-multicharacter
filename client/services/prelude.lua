@@ -115,26 +115,45 @@ function W2F.Prelude.Play(charData, onDone)
         end)
         Wait(120)
 
-        -- 3. NUI: cartão do personagem
+        -- 3. NUI: cartão do personagem (Estilo MRI)
         W2F.SendNui('showPreludeCard', {
             name        = charName,
             age         = tostring(charAge),
             nationality = charNat,
         })
+        W2F.SendNui('showArrivalSkip', {})
 
-        -- 4. Aguardar leitura
-        Wait(freezeMs)
+        local skippedPrelude = false
+        local timerEnd = GetGameTimer() + freezeMs
+        while GetGameTimer() < timerEnd and not skippedPrelude do
+            if IsControlJustReleased(0, 191) or IsControlJustReleased(0, 201) then
+                skippedPrelude = true
+                break
+            end
+            Wait(0)
+        end
 
-        -- 5. NUI: cartão de capítulo (entra na diagonal)
-        W2F.SendNui('showChapterCard', {
-            title = arrTitle,
-            place = arrPlace,
-            time  = arrTime,
-        })
-        Wait(chapterMs)
+        if not skippedPrelude then
+            -- 5. NUI: cartão de capítulo (tela preta com máquina de escrever)
+            W2F.SendNui('showChapterCard', {
+                title      = arrTitle,
+                place      = arrPlace,
+                time       = arrTime,
+                durationMs = chapterMs,
+            })
+
+            timerEnd = GetGameTimer() + chapterMs
+            while GetGameTimer() < timerEnd and not skippedPrelude do
+                if IsControlJustReleased(0, 191) or IsControlJustReleased(0, 201) then
+                    skippedPrelude = true
+                    break
+                end
+                Wait(0)
+            end
+        end
 
         -- 6. Fade out para transicionar para a história
-        DoScreenFadeOut(600)
+        DoScreenFadeOut(500)
         while not IsScreenFadedOut() do Wait(0) end
 
         -- 7. Restaurar tempo + remover efeito P&B + destruir câmera
@@ -147,7 +166,7 @@ function W2F.Prelude.Play(charData, onDone)
 
         -- 8. Esconder overlay do prelúdio e disparar callback
         W2F.SendNui('hidePrelude', {})
-        Wait(200)
+        Wait(100)
 
         dbg('[prelude] concluido, entregando para arrival')
         if onDone then

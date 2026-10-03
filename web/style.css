@@ -1005,158 +1005,184 @@ html, body {
    PRELÚDIO — Cartão do Personagem + Cartão de Capítulo
    ===================================================================== */
 
-/* Overlay de fundo: cobre tudo, fundo preto */
-.prelude-overlay {
+/* =====================================================================
+   CINEMA — Barras Pretas (Letterbox)
+   ===================================================================== */
+.cinema-bars-overlay {
     position: fixed;
     inset: 0;
-    z-index: 9000;
-    background: transparent;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    z-index: 8000;
     pointer-events: none;
+    transition: opacity 0.5s ease;
 }
-.prelude-overlay.hidden { display: none; }
-.prelude-overlay.fade-out-fast {
-    animation: preludeFadeOut 0.4s ease forwards;
-}
-@keyframes preludeFadeOut {
-    to { opacity: 0; }
-}
-
-/* Cartão do Personagem — bate na tela como se fosse uma título de filme */
-.prelude-card {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transform: scale(1.12);
-    transition: opacity 0.05s, transform 0.05s;
-}
-.prelude-card.slam-in {
-    opacity: 1;
-    transform: scale(1);
-    transition: opacity 0.08s cubic-bezier(0.2, 0.8, 0.4, 1),
-                transform 0.08s cubic-bezier(0.2, 0.8, 0.4, 1);
-}
-.prelude-card.fade-out {
-    opacity: 0;
-    transition: opacity 0.4s ease;
-}
-
-.prelude-card-inner {
-    text-align: center;
-    padding: 2.2rem 4.5rem;
-    background: rgba(0, 0, 0, 0.65);
-    backdrop-filter: blur(6px);
-    border-radius: var(--radius-sm);
-    border-top: 2px solid var(--accent);
-    border-bottom: 2px solid var(--accent);
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
-}
-.prelude-name {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: clamp(2.2rem, 5vw, 3.5rem);
-    font-weight: 800;
-    color: var(--content-heading);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    text-shadow: 0 0 40px var(--accent-glow);
-    line-height: 1;
-    margin-bottom: 0.5rem;
-}
-.prelude-details {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: var(--content-secondary);
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-}
-.prelude-sep {
-    color: var(--accent);
-    opacity: 0.7;
-}
-.prelude-typed {
-    /* Sem animação de digitação para evitar complexidade; texto aparece com o cartão */
-}
-
-/* Cartão de Capítulo — entra e sai na diagonal */
-.chapter-card {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    padding-left: 8vw;
-    overflow: hidden;
-}
-.chapter-card.hidden { display: none; }
-
-.chapter-diagonal-in {
-    opacity: 0;
-    transform: translateX(-120px) skewX(-6deg);
-    transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.chapter-card.diagonal-in .chapter-diagonal-in {
-    opacity: 1;
-    transform: translateX(0) skewX(0deg);
-}
-.chapter-card.diagonal-out .chapter-diagonal-in {
-    opacity: 0;
-    transform: translateX(200px) skewX(6deg);
-    transition: opacity 0.4s ease, transform 0.4s ease;
-}
-
-.chapter-eyebrow {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.7rem;
-    font-weight: 600;
-    letter-spacing: 0.25em;
-    color: var(--accent);
-    text-transform: uppercase;
-    margin-bottom: 0.6rem;
-}
-.chapter-title {
-    font-family: 'Inter', sans-serif;
-    font-size: clamp(1.6rem, 3.5vw, 2.8rem);
-    font-weight: 800;
-    color: var(--content-heading);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    line-height: 1.1;
-    margin-bottom: 0.5rem;
-}
-.chapter-meta {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.8rem;
-    color: var(--content-muted);
-    letter-spacing: 0.1em;
-}
-.chapter-sep { color: var(--accent); opacity: 0.6; }
-
-/* Barras de cinema (letterbox) */
+.cinema-bars-overlay.hidden { display: none; }
 .cinema-bar {
     position: absolute;
-    left: 0; right: 0;
-    height: 10vh;
-    background: #000;
-    z-index: 1;
+    left: 0;
+    right: 0;
+    height: 9vh;
+    background: #000000;
+    z-index: 8001;
 }
 .cinema-bar-top { top: 0; }
 .cinema-bar-bot { bottom: 0; }
 
 /* =====================================================================
-   CHEGADA — Legendas de História
+   PRELÚDIO & CAPÍTULO — Estilo MRI Brasil
+   ===================================================================== */
+.prelude-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+    background: transparent;
+    pointer-events: none;
+    transition: background 0.4s ease;
+}
+.prelude-overlay.hidden { display: none; }
+.prelude-overlay.blackout {
+    background: #000000;
+}
+
+/* Cartão do Personagem (Freeze Frame P&B - Canto Inferior Esquerdo) */
+.mri-prelude-wrapper {
+    position: fixed;
+    left: 6vw;
+    bottom: 14vh;
+    z-index: 9100;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.mri-prelude-wrapper.hidden { display: none; }
+.mri-prelude-wrapper.active {
+    opacity: 1;
+    transform: translateY(0);
+}
+.mri-prelude-wrapper.fade-out {
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.mri-prelude-header {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 0.2rem;
+}
+.mri-prelude-line {
+    width: 36px;
+    height: 2px;
+    background: var(--accent);
+}
+.mri-prelude-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.25em;
+    color: var(--accent);
+    text-transform: uppercase;
+}
+
+.mri-prelude-name {
+    font-family: 'Inter', sans-serif;
+    font-size: clamp(3rem, 6vw, 4.6rem);
+    font-weight: 900;
+    font-style: italic;
+    text-transform: uppercase;
+    color: #ffffff;
+    letter-spacing: -0.02em;
+    line-height: 0.95;
+    text-shadow: 0 4px 24px rgba(0, 0, 0, 0.95);
+    margin-bottom: 0.5rem;
+}
+
+.mri-prelude-details {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 500;
+    font-style: italic;
+    color: rgba(255, 255, 255, 0.88);
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.95);
+}
+.mri-prelude-dot {
+    color: var(--accent);
+    font-weight: 700;
+}
+.mri-prelude-status {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Cartão de Capítulo (Tela Preta com Máquina de Escrever) */
+.mri-chapter-wrapper {
+    position: fixed;
+    left: 8vw;
+    top: 38vh;
+    z-index: 9200;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+.mri-chapter-wrapper.hidden { display: none; }
+.mri-chapter-wrapper.active {
+    opacity: 1;
+}
+.mri-chapter-wrapper.fade-out {
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+.mri-chapter-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.3em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+}
+.mri-chapter-title {
+    font-family: 'Inter', sans-serif;
+    font-size: clamp(2.4rem, 5vw, 4rem);
+    font-weight: 900;
+    text-transform: uppercase;
+    color: #ffffff;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    margin-bottom: 0.8rem;
+}
+.mri-chapter-line {
+    width: 160px;
+    height: 2px;
+    background: var(--accent);
+    margin-bottom: 0.8rem;
+}
+.mri-chapter-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    color: rgba(255, 255, 255, 0.75);
+    text-transform: uppercase;
+}
+.mri-cursor {
+    animation: blinkCursor 0.8s infinite;
+    color: var(--accent);
+    font-weight: 700;
+}
+@keyframes blinkCursor {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+
+/* =====================================================================
+   CHEGADA — Legendas Cinematográficas (Estilo MRI)
    ===================================================================== */
 .arrival-subtitle {
     position: fixed;
@@ -1164,7 +1190,7 @@ html, body {
     left: 50%;
     transform: translateX(-50%);
     z-index: 8500;
-    max-width: 70vw;
+    max-width: 80vw;
     text-align: center;
     pointer-events: none;
 }
@@ -1172,17 +1198,19 @@ html, body {
 
 .arrival-subtitle p {
     font-family: 'Inter', sans-serif;
-    font-size: clamp(0.95rem, 2vw, 1.15rem);
+    font-size: clamp(1.1rem, 2.2vw, 1.45rem);
+    font-style: italic;
     font-weight: 500;
     color: #ffffff;
-    background: rgba(0, 0, 0, 0.72);
-    border-left: 3px solid var(--accent);
-    padding: 0.55rem 1.2rem;
-    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-    text-shadow: 0 1px 6px rgba(0,0,0,0.9);
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.98), 0 0 4px rgba(0, 0, 0, 0.9);
+    margin: 0;
+    padding: 0;
+    text-align: center;
+    background: transparent;
+    border: none;
     opacity: 0;
-    transform: translateY(12px);
-    transition: opacity 0.5s ease, transform 0.5s ease;
+    transform: translateY(8px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
 }
 .arrival-subtitle.subtitle-show p {
     opacity: 1;
@@ -1190,8 +1218,52 @@ html, body {
 }
 .arrival-subtitle.subtitle-hide p {
     opacity: 0;
-    transform: translateY(-8px);
-    transition: opacity 0.5s ease, transform 0.4s ease;
+    transform: translateY(-6px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+/* =====================================================================
+   CHEGADA — Badge [ENTER] PULAR (Estilo MRI)
+   ===================================================================== */
+.arrival-skip-badge {
+    position: fixed;
+    right: 2.5rem;
+    bottom: 2.2rem;
+    z-index: 9500;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    background: rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(8px);
+    padding: 0.35rem 0.8rem;
+    border-radius: 4px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s, border-color 0.2s, transform 0.15s;
+}
+.arrival-skip-badge.hidden { display: none; }
+.arrival-skip-badge:hover {
+    background: rgba(0, 0, 0, 0.8);
+    border-color: var(--accent);
+    transform: scale(1.04);
+}
+.skip-key {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    border-radius: 3px;
+    padding: 0.12rem 0.35rem;
+    background: rgba(255, 255, 255, 0.1);
+}
+.skip-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    color: rgba(255, 255, 255, 0.85);
 }
 
 /* =====================================================================
@@ -1267,108 +1339,4 @@ html, body {
     font-style: italic;
 }
 
-/* =====================================================================
-   PROMPT INTERATIVO DE CHEGADA (Estilo Lation Modern UI Emerald)
-   ===================================================================== */
-.arrival-prompt {
-    position: fixed;
-    bottom: 12%;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 99999;
-    pointer-events: auto;
-    transition: opacity 0.3s ease, transform 0.3s ease;
-}
-
-.arrival-prompt.hidden {
-    opacity: 0;
-    pointer-events: none;
-    transform: translate(-50%, 15px);
-}
-
-.arrival-prompt-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.65rem;
-    background: rgba(14, 15, 18, 0.92);
-    border: 1px solid var(--accent);
-    border-radius: var(--radius-md);
-    padding: 1.1rem 1.8rem;
-    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65), 0 0 24px rgba(16, 185, 129, 0.2);
-    backdrop-filter: blur(16px);
-    text-align: center;
-    min-width: 320px;
-    max-width: 480px;
-}
-
-.prompt-speaker-badge {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.72rem;
-    font-weight: 700;
-    color: var(--accent-bright);
-    background: var(--accent-dim);
-    border: 1px solid rgba(16, 185, 129, 0.4);
-    padding: 0.2rem 0.6rem;
-    border-radius: 999px;
-    letter-spacing: 0.08em;
-}
-
-.prompt-speech {
-    font-family: 'Inter', sans-serif;
-    font-size: 0.95rem;
-    color: #ffffff;
-    font-weight: 500;
-    line-height: 1.4;
-    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
-}
-
-.prompt-action-btn {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    background: var(--surface-deep);
-    border: 1px solid rgba(16, 185, 129, 0.5);
-    border-radius: var(--radius-sm);
-    padding: 0.6rem 1.4rem;
-    cursor: pointer;
-    transition: background 0.18s, border-color 0.18s, transform 0.12s;
-    margin-top: 0.3rem;
-}
-
-.prompt-action-btn:hover {
-    background: var(--accent-dim);
-    border-color: var(--accent);
-    transform: scale(1.03);
-}
-
-.prompt-key {
-    background: var(--accent);
-    color: #0b0d10;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.85rem;
-    font-weight: 800;
-    padding: 0.25rem 0.55rem;
-    border-radius: 4px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
-    animation: pulseKey 1.5s infinite;
-}
-
-.prompt-label {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.82rem;
-    font-weight: 700;
-    color: #ffffff;
-    letter-spacing: 0.06em;
-}
-
-@keyframes pulseKey {
-    0%, 100% {
-        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
-        transform: scale(1);
-    }
-    50% {
-        box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
-        transform: scale(1.06);
-    }
 }

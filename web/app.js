@@ -708,13 +708,24 @@ const handlers = {
         showToast('error', data?.error || 'Falha ao excluir personagem.');
     },
 
-    /* ---- Prelúdio: Cartão do Personagem ---- */
+    /* ---- Cinema: Barras Pretas (Letterbox) ---- */
+    showCinemaBars: () => {
+        const bars = document.getElementById('cinemaBars');
+        if (bars) bars.classList.remove('hidden');
+    },
+
+    hideCinemaBars: () => {
+        const bars = document.getElementById('cinemaBars');
+        if (bars) bars.classList.add('hidden');
+    },
+
+    /* ---- Prelúdio: Cartão do Personagem (Estilo MRI) ---- */
     showPreludeCard: (data) => {
         const overlay = document.getElementById('preludeOverlay');
         const card    = document.getElementById('preludeCard');
         if (!overlay || !card) return;
 
-        overlay.classList.remove('hidden', 'fade-out-fast');
+        overlay.classList.remove('hidden', 'blackout');
         overlay.classList.add('active');
 
         const nameEl = document.getElementById('preludeName');
@@ -726,51 +737,78 @@ const handlers = {
         if (natEl)  natEl.textContent  = data?.nationality || '';
 
         card.classList.remove('hidden', 'fade-out');
-        requestAnimationFrame(() => card.classList.add('slam-in'));
+        requestAnimationFrame(() => card.classList.add('active'));
     },
 
+    /* ---- Capítulo: Tela Preta com Máquina de Escrever ---- */
     showChapterCard: (data) => {
+        const overlay = document.getElementById('preludeOverlay');
         const preludeCard = document.getElementById('preludeCard');
         const chapterCard = document.getElementById('chapterCard');
         if (!chapterCard) return;
 
+        if (overlay) overlay.classList.add('blackout');
         if (preludeCard) {
-            preludeCard.classList.remove('slam-in');
+            preludeCard.classList.remove('active');
             preludeCard.classList.add('fade-out');
+            setTimeout(() => preludeCard.classList.add('hidden'), 400);
         }
 
         const titleEl = document.getElementById('chapterTitle');
-        const placeEl = document.getElementById('chapterPlace');
-        const timeEl  = document.getElementById('chapterTime');
+        const metaEl  = document.getElementById('chapterTypewriter');
 
-        if (titleEl) titleEl.textContent = data?.title || 'Capítulo Final';
-        if (placeEl) placeEl.textContent = data?.place || 'Los Santos';
-        if (timeEl)  timeEl.textContent  = data?.time  || '';
+        if (titleEl) titleEl.textContent = data?.title || 'O CONTÊINER';
 
-        chapterCard.classList.remove('hidden', 'diagonal-out');
-        requestAnimationFrame(() => chapterCard.classList.add('diagonal-in'));
+        const place = (data?.place || 'PORTO DE LOS SANTOS').toUpperCase();
+        const time  = (data?.time  || '09:26').toUpperCase();
+        const fullText = `${place} · ${time}`;
+
+        if (metaEl) {
+            metaEl.textContent = '';
+            chapterCard.classList.remove('hidden', 'fade-out');
+            chapterCard.classList.add('active');
+
+            let charIdx = 0;
+            if (window._mriTypewriterInterval) clearInterval(window._mriTypewriterInterval);
+            window._mriTypewriterInterval = setInterval(() => {
+                if (charIdx < fullText.length) {
+                    metaEl.textContent += fullText.charAt(charIdx);
+                    charIdx++;
+                } else {
+                    clearInterval(window._mriTypewriterInterval);
+                    window._mriTypewriterInterval = null;
+                }
+            }, 65);
+        }
 
         setTimeout(() => {
-            chapterCard.classList.add('diagonal-out');
-        }, (data?.durationMs || 2800) - 400);
+            chapterCard.classList.add('fade-out');
+        }, (data?.durationMs || 3000) - 500);
     },
 
     hidePrelude: () => {
+        if (window._mriTypewriterInterval) {
+            clearInterval(window._mriTypewriterInterval);
+            window._mriTypewriterInterval = null;
+        }
         const overlay = document.getElementById('preludeOverlay');
+        const preludeCard = document.getElementById('preludeCard');
+        const chapterCard = document.getElementById('chapterCard');
         if (overlay) {
-            overlay.classList.add('fade-out-fast');
-            setTimeout(() => {
-                overlay.classList.add('hidden');
-                overlay.classList.remove('active', 'fade-out-fast');
-                const card    = document.getElementById('preludeCard');
-                const chapter = document.getElementById('chapterCard');
-                if (card)    { card.classList.remove('slam-in', 'fade-out', 'hidden'); card.classList.add('hidden'); }
-                if (chapter) { chapter.classList.remove('diagonal-in', 'diagonal-out', 'hidden'); chapter.classList.add('hidden'); }
-            }, 400);
+            overlay.classList.add('hidden');
+            overlay.classList.remove('active', 'blackout');
+        }
+        if (preludeCard) {
+            preludeCard.classList.remove('active', 'fade-out');
+            preludeCard.classList.add('hidden');
+        }
+        if (chapterCard) {
+            chapterCard.classList.remove('active', 'fade-out');
+            chapterCard.classList.add('hidden');
         }
     },
 
-    /* ---- Chegada: Legendas de história ---- */
+    /* ---- Chegada: Legendas de história (Estilo MRI) ---- */
     showArrivalSubtitle: (data) => {
         const el   = document.getElementById('arrivalSubtitle');
         const text = document.getElementById('arrivalSubtitleText');
@@ -780,14 +818,14 @@ const handlers = {
         el.classList.remove('hidden', 'subtitle-hide');
         el.classList.add('subtitle-show');
 
-        const ms = data?.durationMs || 3000;
+        const ms = data?.durationMs || 3200;
         setTimeout(() => {
             el.classList.add('subtitle-hide');
             setTimeout(() => {
                 el.classList.add('hidden');
                 el.classList.remove('subtitle-show', 'subtitle-hide');
-            }, 600);
-        }, ms - 600);
+            }, 450);
+        }, Math.max(800, ms - 450));
     },
 
     hideArrivalSubtitle: () => {
@@ -798,19 +836,14 @@ const handlers = {
         }
     },
 
-    /* ---- Chegada: Prompt Interativo de Ação (Lation Emerald) ---- */
-    showArrivalPrompt: (data) => {
-        const el = document.getElementById('arrivalPrompt');
-        const speech = document.getElementById('arrivalPromptSpeech');
-        const label = document.getElementById('arrivalPromptLabel');
-        if (!el) return;
-        if (speech && data?.speech) speech.textContent = data.speech;
-        if (label && data?.label) label.textContent = data.label;
-        el.classList.remove('hidden');
+    /* ---- Chegada: Badge [ENTER] PULAR ---- */
+    showArrivalSkip: () => {
+        const el = document.getElementById('skipArrivalPrompt');
+        if (el) el.classList.remove('hidden');
     },
 
-    hideArrivalPrompt: () => {
-        const el = document.getElementById('arrivalPrompt');
+    hideArrivalSkip: () => {
+        const el = document.getElementById('skipArrivalPrompt');
         if (el) el.classList.add('hidden');
     },
 };
@@ -971,26 +1004,26 @@ window.addEventListener('click', (e) => {
     });
 });
 
-document.getElementById('arrivalPromptBtn')?.addEventListener('click', (e) => {
+document.getElementById('skipArrivalPrompt')?.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
-    const promptEl = document.getElementById('arrivalPrompt');
-    if (promptEl) promptEl.classList.add('hidden');
-    post('arrivalPromptAction', { action: 'force_door' });
+    const skipBadge = document.getElementById('skipArrivalPrompt');
+    if (skipBadge) skipBadge.classList.add('hidden');
+    post('skipArrivalStory');
 });
 
 /* ============================================================
  * Keyboard Management
  * ============================================================ */
 document.addEventListener('keydown', (e) => {
-    // Interceptação de [E] durante o prompt interativo de chegada (ex: Contêiner)
-    if (e.key === 'e' || e.key === 'E') {
-        const promptEl = document.getElementById('arrivalPrompt');
-        if (promptEl && !promptEl.classList.contains('hidden')) {
+    // Interceptação de Enter para pular cinemática de chegada
+    if (e.key === 'Enter') {
+        const skipBadge = document.getElementById('skipArrivalPrompt');
+        if (skipBadge && !skipBadge.classList.contains('hidden')) {
             e.preventDefault();
             e.stopPropagation();
-            promptEl.classList.add('hidden');
-            post('arrivalPromptAction', { action: 'force_door' });
+            skipBadge.classList.add('hidden');
+            post('skipArrivalStory');
             return;
         }
     }

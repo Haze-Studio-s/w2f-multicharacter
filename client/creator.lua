@@ -111,6 +111,12 @@ local function saveAppearanceThenFinish(appearance, cc, gender, coords, heading)
     local arrivalEnabled = (Config.Arrival or {}).enabled ~= false
     local meta = W2F.State.pendingNewCharacterMeta or {}
     local arrivalId = meta.arrivalId
+    local nat = meta.nationality or meta.charNationality or ''
+    local nonNative = { ['Brasileiro'] = true, ['Americano'] = true, ['American'] = true, ['Brazilian'] = true }
+    if (not arrivalId or arrivalId == '' or arrivalId == 'none') and not nonNative[nat] then
+        arrivalId = 'container'
+        meta.arrivalId = 'container'
+    end
     local hasArrivalStory = arrivalEnabled and arrivalId and arrivalId ~= '' and arrivalId ~= 'none'
 
     --- Leave the appearance phase so the input-lock loop stops before spawn handoff.
@@ -217,14 +223,26 @@ local function saveAppearanceThenFinish(appearance, cc, gender, coords, heading)
             end
 
             if preludeEnabled and W2F.Prelude and W2F.Prelude.Play then
-                -- Coleta dados do personagem para o cartão
+                local arrTitle = 'O CONTÊINER'
+                local arrPlace = 'PORTO DE LOS SANTOS'
+                if arrivalId == 'plane' then
+                    arrTitle = 'O VOO COMERCIAL'
+                    arrPlace = 'AEROPORTO LSIA'
+                elseif arrivalId == 'prison' then
+                    arrTitle = 'A PENITENCIÁRIA'
+                    arrPlace = 'BOLINGBROKE'
+                elseif arrivalId == 'train' then
+                    arrTitle = 'OS TRILHOS'
+                    arrPlace = 'PÁTIO DE DAVIS'
+                end
+
                 local charMeta = {
                     name         = ((meta.firstname or '') .. ' ' .. (meta.lastname or '')):gsub('^%s+', ''):gsub('%s+$', ''),
                     age          = meta.age or '—',
-                    nationality  = meta.nationality or 'American',
-                    arrivalId    = meta.arrivalId or 'none',
-                    arrivalTitle = meta.arrivalTitle or (type(locale) == 'function' and locale('story.chapter_title')) or 'Capítulo Final',
-                    arrivalPlace = meta.arrivalPlace or 'Los Santos, San Andreas',
+                    nationality  = meta.nationality or 'Alemão',
+                    arrivalId    = arrivalId or 'none',
+                    arrivalTitle = arrTitle,
+                    arrivalPlace = arrPlace,
                 }
                 W2F.Prelude.Play(charMeta, runArrivalThenSpawn)
             else
