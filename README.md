@@ -27,10 +27,11 @@ Cinematic multicharacter selection for **Qbox** — character create / select / 
   - Cartão de identidade de cinema com entrada em impacto (*slam-in*) exibindo Nome, Idade e Nacionalidade.
   - Transição de capítulo em corte diagonal revelando local, horário in-game e nome do capítulo.
 - **Contêiner do Coiote (`container`):**
-  - Spawn em cais portuário realista com navios cargueiros e guindastes (`vec4(428.34, -3005.00, 5.90, 180.0)` em terra firme ampla).
-  - Sequência 3D com penumbra interior no contêiner (`tr_prop_tr_container_01a`), som de metal rangendo e buzina de navio.
-  - **Interação Dinâmica (Estilo MRI):** O coiote bate 3 vezes na porta de ferro pelo lado de fora (`BOSS_KNOCK`) e grita *"Ei! Chegamos a Los Santos! Empurrem a porta por dentro!"*.
-  - **Prompt Interativo [E]:** Card Lation Emerald com tecla pulsante para o jogador forçar a porta. O ped executa animação de impacto/empurrão, a trava estoura com som metálico e as portas se abrem com clarão solar cegante e gaivotas.
+  - Spawn em cais portuário realista com navios cargueiros e guindastes (`vec4(520.39, -2935.94, 6.04, 180.0)` em terra firme ampla no Terminal).
+  - Sequência 3D fiel 1:1 ao MRI: penumbra interior no contêiner (`tr_prop_tr_container_01a`), som de metal rangendo e buzina de cargueiro ao longe.
+  - Alinhamento dinâmico e raycast de colisão no solo interno (`StartExpensiveSynchronousShapeTestLosProbe`), evitando flutuação ou afundamento.
+  - Companheiros clandestinos sentados ao lado no chão, tranco do guindaste com sobressalto (`flinch` e `LARGE_EXPLOSION_SHAKE`), abertura sincronizada de portas (fase 0.66) e caminhada fluida até o asfalto (`standAndWalk`).
+  - Suporte total a pular cinemática (`[ENTER]` ou `[ESPAÇO]`).
   - **Economia & Inventário:** Dinheiro e banco zerados (R$ 0), sem documentos (sem RG/CNH), 5 cigarros e isqueiro garantidos, 20% de chance de celular contrabandeado.
 - **Voo Comercial / Avião (`plane`):**
   - Cutscene do GTA Online ou travelling aéreo cinematográfico *in-engine* sobrevoando o Aeroporto Internacional LSIA com áudio nativo de turbinas e legendas sincronizadas.
