@@ -563,6 +563,130 @@ html, body {
 }
 
 /* =====================================================================
+   Combobox Moderno de Nacionalidades (Lation Emerald)
+   ===================================================================== */
+.nationality-field {
+    position: relative;
+}
+
+.nation-combobox {
+    position: relative;
+    width: 100%;
+}
+
+.nation-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.nation-selected-flag {
+    position: absolute;
+    left: 0.75rem;
+    font-size: 1.15rem;
+    pointer-events: none;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nation-search-input {
+    padding-left: 2.5rem !important;
+    padding-right: 2rem !important;
+}
+
+.nation-toggle-btn {
+    position: absolute;
+    right: 0.5rem;
+    background: transparent;
+    border: none;
+    color: var(--content-muted);
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 0.2rem 0.4rem;
+    transition: color 0.15s, transform 0.15s;
+    z-index: 2;
+}
+
+.nation-toggle-btn:hover {
+    color: var(--accent);
+}
+
+.nation-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    width: 100%;
+    max-height: 220px;
+    background: rgba(22, 23, 28, 0.96);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.65), 0 0 1px rgba(16, 185, 129, 0.3);
+    z-index: 999;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
+}
+
+.nation-dropdown-list {
+    display: flex;
+    flex-direction: column;
+    padding: 0.3rem;
+}
+
+.nation-option {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.5rem 0.65rem;
+    border-radius: 4px;
+    font-size: 0.82rem;
+    color: var(--content-heading);
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+}
+
+.nation-option:hover,
+.nation-option.highlighted {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--accent-bright);
+}
+
+.nation-option.selected {
+    background: rgba(16, 185, 129, 0.22);
+    color: #fff;
+    font-weight: 600;
+}
+
+.nation-option-flag {
+    font-size: 1.15rem;
+    line-height: 1;
+}
+
+.nation-option-name {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.nation-option-code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--content-muted);
+}
+
+.nation-empty {
+    padding: 0.8rem;
+    font-size: 0.78rem;
+    color: var(--content-muted);
+    text-align: center;
+}
+
+/* =====================================================================
    Barra de Dicas Inferior (Hint Bar)
    ===================================================================== */
 .hint-bar {

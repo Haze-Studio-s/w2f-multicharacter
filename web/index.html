@@ -215,10 +215,20 @@
                     </div>
 
                     <div class="form-row">
-                        <label class="form-field">
+                        <div class="form-field nationality-field">
                             <span>Nacionalidade</span>
-                            <select id="createNationality" name="nationality" class="lation-input"></select>
-                        </label>
+                            <div class="nation-combobox" id="nationCombobox">
+                                <div class="nation-input-wrapper">
+                                    <span class="nation-selected-flag" id="nationSelectedFlag">🇧🇷</span>
+                                    <input type="text" id="createNationalityInput" class="lation-input nation-search-input" placeholder="Buscar país..." autocomplete="off" />
+                                    <input type="hidden" id="createNationality" name="nationality" value="Brasileiro" />
+                                    <button type="button" class="nation-toggle-btn" id="nationToggleBtn" tabindex="-1">▾</button>
+                                </div>
+                                <div class="nation-dropdown hidden" id="nationDropdown">
+                                    <div class="nation-dropdown-list" id="nationDropdownList"></div>
+                                </div>
+                            </div>
+                        </div>
                         <label class="form-field">
                             <span>Data de Nascimento</span>
                             <input type="date" id="createBirthdate" name="birthdate" class="lation-input" required />
@@ -411,6 +421,7 @@
         </div>
     </div>
 
+    <script src="countries.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

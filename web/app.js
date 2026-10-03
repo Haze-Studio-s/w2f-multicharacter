@@ -46,6 +46,11 @@ const dom = {
     createForm: document.getElementById('createForm'),
     createSlotLabel: document.getElementById('createSlotLabel'),
     createNationality: document.getElementById('createNationality'),
+    createNationalityInput: document.getElementById('createNationalityInput'),
+    nationSelectedFlag: document.getElementById('nationSelectedFlag'),
+    nationDropdown: document.getElementById('nationDropdown'),
+    nationDropdownList: document.getElementById('nationDropdownList'),
+    nationToggleBtn: document.getElementById('nationToggleBtn'),
     createBirthdate: document.getElementById('createBirthdate'),
     createError: document.getElementById('createError'),
     createCancelBtn: document.getElementById('createCancelBtn'),
@@ -307,22 +312,221 @@ function closeConfirmDelete() {
 /* ============================================================
  * Modal de Criação de Cidadão
  * ============================================================ */
-function populateNationalities(cfg) {
-    if (!dom.createNationality || !cfg) return;
-    dom.createNationality.innerHTML = '';
-    const list = cfg.nationalities || [
-        'Brasileiro', 'Americano', 'Canadense', 'Espanhol', 'Italiano',
-        'Francês', 'Alemão', 'Inglês', 'Japonês', 'Outro'
+/* ============================================================
+ * Modal de Criação de Cidadão — Combobox de 195+ Países
+ * ============================================================ */
+function getCountryDataset() {
+    if (window.W2F_COUNTRIES && Array.isArray(window.W2F_COUNTRIES) && window.W2F_COUNTRIES.length > 0) {
+        return window.W2F_COUNTRIES;
+    }
+    return [
+        { name: 'Brasil', flag: '🇧🇷', code: 'BR' },
+        { name: 'Estados Unidos', flag: '🇺🇸', code: 'US' },
+        { name: 'Canadá', flag: '🇨🇦', code: 'CA' },
+        { name: 'Espanha', flag: '🇪🇸', code: 'ES' },
+        { name: 'Itália', flag: '🇮🇹', code: 'IT' },
+        { name: 'França', flag: '🇫🇷', code: 'FR' },
+        { name: 'Alemanha', flag: '🇩🇪', code: 'DE' },
+        { name: 'Reino Unido', flag: '🇬🇧', code: 'GB' },
+        { name: 'Japão', flag: '🇯🇵', code: 'JP' },
+        { name: 'México', flag: '🇲🇽', code: 'MX' },
+        { name: 'Portugal', flag: '🇵🇹', code: 'PT' },
+        { name: 'Argentina', flag: '🇦🇷', code: 'AR' },
+        { name: 'Colômbia', flag: '🇨🇴', code: 'CO' },
     ];
-    list.forEach((nat) => {
-        const opt = document.createElement('option');
-        opt.value = nat;
-        opt.textContent = nat;
-        if (nat === (cfg.defaultNationality || 'Brasileiro')) {
-            opt.selected = true;
+}
+
+function suggestArrivalStoryForNationality(countryName) {
+    if (!countryName) return;
+    const nameLower = countryName.toLowerCase();
+    
+    // Nativos / Locais -> Já estava aqui
+    if (nameLower.includes('brasil') || nameLower.includes('estados unidos') || nameLower.includes('american')) {
+        const rad = document.getElementById('arrivalNone');
+        if (rad) rad.checked = true;
+        return;
+    }
+    
+    // Países com fluxo migratório intenso / clandestino -> Contêiner
+    const containerOrigins = ['méxico', 'mexico', 'china', 'japão', 'japao', 'colômbia', 'colombia', 'rússia', 'russia', 'turquia', 'índia', 'india', 'filipinas', 'coreia', 'vietnã', 'vietna', 'nigéria', 'nigeria', 'haiti', 'cuba'];
+    for (const origin of containerOrigins) {
+        if (nameLower.includes(origin)) {
+            const rad = document.getElementById('arrivalContainer');
+            if (rad) rad.checked = true;
+            return;
         }
-        dom.createNationality.appendChild(opt);
+    }
+    
+    // Países ricos europeus/turistas -> Voo Comercial / Avião
+    const planeOrigins = ['frança', 'franca', 'reino unido', 'inglaterra', 'alemanha', 'itália', 'italia', 'espanha', 'portugal', 'suíça', 'suica', 'canadá', 'canada', 'austrália', 'australia'];
+    for (const origin of planeOrigins) {
+        if (nameLower.includes(origin)) {
+            const rad = document.getElementById('arrivalPlane');
+            if (rad) rad.checked = true;
+            return;
+        }
+    }
+    
+    // Fallback padrão para estrangeiros: Contêiner
+    const rad = document.getElementById('arrivalContainer');
+    if (rad) rad.checked = true;
+}
+
+function selectNationality(country) {
+    if (!country) return;
+    if (dom.createNationality) dom.createNationality.value = country.name;
+    if (dom.createNationalityInput) dom.createNationalityInput.value = country.name;
+    if (dom.nationSelectedFlag) dom.nationSelectedFlag.textContent = country.flag || '🌐';
+    
+    closeNationDropdown();
+    suggestArrivalStoryForNationality(country.name);
+}
+
+function renderNationDropdownList(list) {
+    if (!dom.nationDropdownList) return;
+    dom.nationDropdownList.innerHTML = '';
+    state.nationFilteredList = list || [];
+    state.nationHighlightIndex = -1;
+
+    if (list.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'nation-empty';
+        empty.textContent = 'Nenhum país encontrado';
+        dom.nationDropdownList.appendChild(empty);
+        return;
+    }
+
+    const currentVal = dom.createNationality ? dom.createNationality.value : '';
+
+    list.forEach((c, idx) => {
+        const item = document.createElement('div');
+        item.className = 'nation-option' + (c.name === currentVal ? ' selected' : '');
+        item.dataset.index = idx;
+        item.innerHTML = `
+            <span class="nation-option-flag">${c.flag || '🌐'}</span>
+            <span class="nation-option-name">${escapeHtml(c.name)}</span>
+            <span class="nation-option-code">${escapeHtml(c.code || '')}</span>
+        `;
+        item.addEventListener('click', () => {
+            selectNationality(c);
+        });
+        dom.nationDropdownList.appendChild(item);
     });
+}
+
+function openNationDropdown() {
+    if (!dom.nationDropdown) return;
+    dom.nationDropdown.classList.remove('hidden');
+    filterNationalities(dom.createNationalityInput ? dom.createNationalityInput.value : '');
+}
+
+function closeNationDropdown() {
+    if (dom.nationDropdown) {
+        dom.nationDropdown.classList.add('hidden');
+    }
+    state.nationHighlightIndex = -1;
+}
+
+function filterNationalities(query) {
+    const all = getCountryDataset();
+    const q = (query || '').trim().toLowerCase();
+    if (!q) {
+        renderNationDropdownList(all);
+        return;
+    }
+    const filtered = all.filter(c => 
+        (c.name && c.name.toLowerCase().includes(q)) || 
+        (c.code && c.code.toLowerCase().includes(q))
+    );
+    renderNationDropdownList(filtered);
+}
+
+function initNationCombobox() {
+    if (!dom.createNationalityInput || state._nationComboboxInit) return;
+    state._nationComboboxInit = true;
+
+    dom.createNationalityInput.addEventListener('focus', () => {
+        openNationDropdown();
+    });
+
+    dom.createNationalityInput.addEventListener('input', (e) => {
+        openNationDropdown();
+        filterNationalities(e.target.value);
+    });
+
+    dom.createNationalityInput.addEventListener('keydown', (e) => {
+        if (!dom.nationDropdown || dom.nationDropdown.classList.contains('hidden')) {
+            if (e.key === 'ArrowDown' || e.key === 'Enter') {
+                openNationDropdown();
+                e.preventDefault();
+            }
+            return;
+        }
+
+        const items = dom.nationDropdownList ? dom.nationDropdownList.querySelectorAll('.nation-option') : [];
+        if (items.length === 0) return;
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            state.nationHighlightIndex = Math.min(state.nationHighlightIndex + 1, items.length - 1);
+            updateNationHighlight(items);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            state.nationHighlightIndex = Math.max(state.nationHighlightIndex - 1, 0);
+            updateNationHighlight(items);
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (state.nationHighlightIndex >= 0 && state.nationFilteredList[state.nationHighlightIndex]) {
+                selectNationality(state.nationFilteredList[state.nationHighlightIndex]);
+            } else if (state.nationFilteredList.length > 0) {
+                selectNationality(state.nationFilteredList[0]);
+            }
+        } else if (e.key === 'Escape') {
+            closeNationDropdown();
+        }
+    });
+
+    if (dom.nationToggleBtn) {
+        dom.nationToggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (dom.nationDropdown.classList.contains('hidden')) {
+                dom.createNationalityInput.focus();
+                openNationDropdown();
+            } else {
+                closeNationDropdown();
+            }
+        });
+    }
+
+    document.addEventListener('click', (e) => {
+        const box = document.getElementById('nationCombobox');
+        if (box && !box.contains(e.target)) {
+            closeNationDropdown();
+        }
+    });
+}
+
+function updateNationHighlight(items) {
+    items.forEach((it, idx) => {
+        if (idx === state.nationHighlightIndex) {
+            it.classList.add('highlighted');
+            it.scrollIntoView({ block: 'nearest' });
+        } else {
+            it.classList.remove('highlighted');
+        }
+    });
+}
+
+function populateNationalities(cfg) {
+    initNationCombobox();
+    const def = cfg?.defaultNationality || 'Brasil';
+    const all = getCountryDataset();
+    let found = all.find(c => c.name.toLowerCase() === def.toLowerCase() || c.name.toLowerCase() === 'brasil');
+    if (!found && all.length > 0) found = all[0];
+    
+    if (found) {
+        selectNationality(found);
+    }
 }
 
 function showCreateError(msg) {

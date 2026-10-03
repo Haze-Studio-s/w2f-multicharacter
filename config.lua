@@ -193,6 +193,25 @@ Config.Scene = {
         'stretch', 'stretch2', 'stretch3', 'stretch4',
         'shakeoff',
     },
+    --- Iluminação cinematográfica 3D (Holofote + Luz de Preenchimento facial)
+    spotlight = {
+        enabled = true,
+        height = 3.2,
+        r = 255, g = 255, b = 255,
+        distance = 7.5,
+        brightness = 2.4,
+        hardness = 1.0,
+        radius = 2.2,
+        falloff = 1.5,
+    },
+    frontlight = {
+        enabled = true,
+        height = 1.2,
+        dist = 1.8,
+        r = 240, g = 245, b = 255,
+        range = 3.0,
+        intensity = 1.5,
+    },
     --- Interior/MLO streaming for the lineup location. Auto-detects via
     --- GetInteriorAtCoords at the scene focal; fill `ipls` if your map uses IPLs.
     ---

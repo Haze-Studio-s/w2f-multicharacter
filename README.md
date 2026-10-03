@@ -15,7 +15,8 @@ Cinematic multicharacter selection for **Qbox** — character create / select / 
 - **Cinematografia Orgânica:** Câmera com micro hand-shake orgânico ao inspecionar o personagem.
 - **Slots Dinâmicos por Jogador:** Suporte a slots individuais configuráveis via comando `/setslot <id> <slots>` ou exports.
 - **Phone Number Resolver Desacoplado:** Compatibilidade nativa com `lb-phone`, `qs-smartphone-pro`, `qs-smartphone`, `yseries` e fallback no DB.
-- **Modal de Criação:** Validação reativa de nomes, campos de data, seleção de nacionalidade/gênero e escolha de história de chegada (Contêiner, Avião ou Já estava aqui).
+- **Modal de Criação Moderno:** Validação reativa de nomes, campos de data com máscara, **seletor global de nacionalidades ISO 3166-1 com 250 países traduzidos em PT-BR** e busca instantânea com navegação por teclado, sugestão inteligente de história de chegada e escolha imersiva (Contêiner, Avião, Prisão, Trem ou Já estava aqui).
+- **Showroom com Iluminação 3D de Estúdio:** Holofote zenital de alta definição (`DrawSpotLight`), preenchimento facial omnidirecional (`DrawLightWithRange`) e anel holográfico Lation Emerald projetado no solo sob o personagem selecionado.
 - **Deleção Segura:** Protocolo com exigência de digitação `DELETAR` e bloqueio anti-dupe / anti-spam com cascata SQL defensiva.
 - **Locales Nativos:** Tradução integral em português do Brasil (`locales/pt-br.json`).
 

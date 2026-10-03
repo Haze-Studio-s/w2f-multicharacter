@@ -1426,3 +1426,63 @@ function W2F.Characters.ConfirmCurrentSlot()
         W2F.Characters.OpenCreateForSlot(selSlot)
     end
 end
+
+--- Desenha holofote 3D Showroom (DrawSpotLight + DrawLightWithRange) e anel estético no chão
+--- sob o personagem atualmente selecionado.
+function W2F.Characters.DrawActiveSpotlight()
+    if not W2F.Session.Is('selection') then return end
+    local ped = W2F.State.selectedPed
+    if not ped or not DoesEntityExist(ped) then return end
+
+    local coords = GetEntityCoords(ped)
+    local spot = Config.Scene and Config.Scene.spotlight
+    if spot and spot.enabled ~= false then
+        local height = spot.heightOffset or 3.2
+        local radius = spot.radius or 2.2
+        local brightness = spot.brightness or 2.4
+        local distance = spot.distance or 12.0
+        local falloff = spot.falloff or 10.0
+        local col = spot.color or { r = 240, g = 245, b = 255 }
+
+        DrawSpotLight(
+            coords.x, coords.y, coords.z + height,
+            0.0, 0.0, -1.0,
+            col.r, col.g, col.b,
+            distance,
+            brightness,
+            1.5,
+            radius,
+            falloff
+        )
+    end
+
+    local front = Config.Scene and Config.Scene.frontlight
+    if front and front.enabled ~= false then
+        local fwd = GetEntityForwardVector(ped)
+        local fwdDist = front.forwardOffset or 0.9
+        local height = front.heightOffset or 1.2
+        local radius = front.radius or 2.5
+        local intensity = front.intensity or 1.8
+        local col = front.color or { r = 255, g = 250, b = 240 }
+
+        DrawLightWithRange(
+            coords.x + (fwd.x * fwdDist),
+            coords.y + (fwd.y * fwdDist),
+            coords.z + height,
+            col.r, col.g, col.b,
+            radius,
+            intensity
+        )
+    end
+
+    -- Anel estético Lation Emerald (#10b981) projetado no chão
+    DrawMarker(
+        27,
+        coords.x, coords.y, coords.z - 0.97,
+        0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0,
+        1.1, 1.1, 1.1,
+        16, 185, 129, 90,
+        false, false, 2, false, nil, nil, false
+    )
+end

@@ -339,6 +339,9 @@ function W2F.Interaction.StartLoop()
                 W2F.Interaction.UpdatePedTargeting()
                 W2F.Interaction.HandleClick()
                 W2F.Interaction.UpdateKeyboardNavigation()
+                if W2F.Characters and W2F.Characters.DrawActiveSpotlight then
+                    W2F.Characters.DrawActiveSpotlight()
+                end
             end
 
             W2F.Camera.Update()

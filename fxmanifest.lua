@@ -67,6 +67,7 @@ ui_page 'web/index.html'
 
 files {
     'web/index.html',
+    'web/countries.js',
     'web/app.js',
     'web/style.css',
     'locales/*.json',
