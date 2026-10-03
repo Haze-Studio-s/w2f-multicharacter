@@ -29,7 +29,8 @@ Cinematic multicharacter selection for **Qbox** — character create / select / 
 - **Contêiner do Coiote (`container`):**
   - Spawn em cais portuário realista com navios cargueiros e guindastes (`vec4(428.34, -3005.00, 5.90, 180.0)` em terra firme ampla).
   - Sequência 3D com penumbra interior no contêiner (`tr_prop_tr_container_01a`), som de metal rangendo e buzina de navio.
-  - Abertura de portas animadas com clarão solar cegante, gaivotas e caminhada do ped para fora em direção ao cais com detecção de solo firme (`GetGroundZFor_3dCoord`).
+  - **Interação Dinâmica (Estilo MRI):** O coiote bate 3 vezes na porta de ferro pelo lado de fora (`BOSS_KNOCK`) e grita *"Ei! Chegamos a Los Santos! Empurrem a porta por dentro!"*.
+  - **Prompt Interativo [E]:** Card Lation Emerald com tecla pulsante para o jogador forçar a porta. O ped executa animação de impacto/empurrão, a trava estoura com som metálico e as portas se abrem com clarão solar cegante e gaivotas.
   - **Economia & Inventário:** Dinheiro e banco zerados (R$ 0), sem documentos (sem RG/CNH), 5 cigarros e isqueiro garantidos, 20% de chance de celular contrabandeado.
 - **Voo Comercial / Avião (`plane`):**
   - Cutscene do GTA Online ou travelling aéreo cinematográfico *in-engine* sobrevoando o Aeroporto Internacional LSIA com áudio nativo de turbinas e legendas sincronizadas.
