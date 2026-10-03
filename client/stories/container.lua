@@ -218,18 +218,18 @@ function W2F.Arrival.Container(ctx, spawnCoords)
         requestModelSafe(npc2Model, 6000)
 
         -- Posições relativas — geometria do tr_prop_tr_container_01a (20ft ISO):
-        --   Comprimento: 6.1m  → fundo fechado em +Y~2.95, portas em -Y~2.95
-        --   Largura:     2.4m  → laterais em ±0.85 (sem tocar a parede)
-        --   Chão interno: Z local = -1.15 (prop com NoOffset → GetOffset usa transform do prop)
+        --   CreateObjectNoOffset: base do prop em containerCoords.z
+        --   Chão interno: Z = 0.0 local (o prop tem ~2.6m de altura, chão fica em Z=0 local)
+        --   Fundo sólido: +Y ~2.95, Portas: -Y ~2.95, Laterais: ±0.85
         --
-        -- Valores validados pelo OmniRoute (kiro/claude-sonnet-4.5):
-        -- Jogador ao centro próximo ao fundo, NPCs à esq/dir na mesma linha
-        local playerInside = containerProp and GetOffsetFromEntityInWorldCoords(containerProp, 0.0, 2.2, -1.15)
-            or vec3(containerCoords.x, containerCoords.y + 2.2, containerCoords.z)
-        local npc1Pos = containerProp and GetOffsetFromEntityInWorldCoords(containerProp, -0.85, 2.0, -1.15)
-            or vec3(containerCoords.x - 0.85, containerCoords.y + 2.0, containerCoords.z)
-        local npc2Pos = containerProp and GetOffsetFromEntityInWorldCoords(containerProp, 0.85, 2.0, -1.15)
-            or vec3(containerCoords.x + 0.85, containerCoords.y + 2.0, containerCoords.z)
+        -- DIAGNÓSTICO (test4): Z=-1.15 colocava peds no asfalto externo (abaixo do prop)
+        -- FIX: Z=0.0 local = chão interno do container
+        local playerInside = containerProp and GetOffsetFromEntityInWorldCoords(containerProp, 0.0, 2.0, 0.0)
+            or vec3(containerCoords.x, containerCoords.y + 2.0, containerCoords.z)
+        local npc1Pos = containerProp and GetOffsetFromEntityInWorldCoords(containerProp, -0.75, 1.7, 0.0)
+            or vec3(containerCoords.x - 0.75, containerCoords.y + 1.7, containerCoords.z)
+        local npc2Pos = containerProp and GetOffsetFromEntityInWorldCoords(containerProp, 0.75, 1.7, 0.0)
+            or vec3(containerCoords.x + 0.75, containerCoords.y + 1.7, containerCoords.z)
 
         local faceDoorsHeading = (containerCoords.w + 180.0) % 360.0
 
@@ -266,12 +266,14 @@ function W2F.Arrival.Container(ctx, spawnCoords)
         end
 
         -- 5. Câmera INTERIOR 1
-        -- Validado pelo OmniRoute: Y=-2.3 (perto das portas, dentro), Z=-0.4 local
-        -- Aponta para os peds no fundo (+Y) levemente para baixo
-        local cam1Pos = containerProp and GetOffsetFromEntityInWorldCoords(containerProp, 0.0, -2.3, -0.4)
-            or vec3(containerCoords.x, containerCoords.y - 2.3, containerCoords.z - 0.4)
-        local cam1Target = containerProp and GetOffsetFromEntityInWorldCoords(containerProp, 0.0, 2.0, -1.0)
-            or vec3(containerCoords.x, containerCoords.y + 2.0, containerCoords.z - 1.0)
+        -- FIX (test4): Z=-0.4/-1.0 estava ABAIXO do prop (no asfalto externo)
+        -- Com CreateObjectNoOffset, Z=0 local = base do prop = chão externo
+        -- Interior: Z=0.8 = ~altura dos olhos dentro do container, Y=-2.3 = perto das portas
+        -- Mira em (0, 2.0, 0.3) = onde os peds estão agachados
+        local cam1Pos = containerProp and GetOffsetFromEntityInWorldCoords(containerProp, 0.0, -2.3, 0.8)
+            or vec3(containerCoords.x, containerCoords.y - 2.3, containerCoords.z + 0.8)
+        local cam1Target = containerProp and GetOffsetFromEntityInWorldCoords(containerProp, 0.0, 2.0, 0.3)
+            or vec3(containerCoords.x, containerCoords.y + 2.0, containerCoords.z + 0.3)
         cam1 = createLookAtCam(cam1Pos, cam1Target, 54.0)
         SetCamActive(cam1, true)
         RenderScriptCams(true, false, 0, true, false)
@@ -279,7 +281,7 @@ function W2F.Arrival.Container(ctx, spawnCoords)
         -- Ativa as barras de cinema no NUI
         W2F.SendNui('showCinemaBars', {})
 
-        -- Iluminação escura de interior — usar força reduzida para não anular a câmera
+        -- Iluminação escura de interior — força reduzida para não matar a câmera
         SetTimecycleModifier('int_extlight_none_dark')
         SetTimecycleModifierStrength(0.65)
 
