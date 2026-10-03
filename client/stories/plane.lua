@@ -1,12 +1,8 @@
 --- W2F.Arrival.Plane — História de Chegada: Avião.
 ---
 --- Usa a cutscene nativa mp_intro_concat do GTA Online com legendas
---- sincronizadas via NUI. Disponível para qualquer nacionalidade.
---- Sequência:
----   1. Fade out + tela preta.
----   2. Cutscene mp_intro_concat (pode ser pulada com Enter/Space).
----   3. Legendas sobre a cutscene via NUI.
----   4. Teleporta para spawnCoords e entrega.
+--- sincronizadas via NUI ou travelling aéreo in-engine caso a cutscene falhe.
+--- Protegido contra memory leaks de câmeras, skip universal (NUI/Teclado) e disconnect.
 
 W2F.Arrival = W2F.Arrival or {}
 
@@ -33,13 +29,60 @@ function W2F.Arrival.Plane(ctx, spawnCoords)
 
     CreateThread(function()
         local ped = PlayerPedId()
+        local skipped = false
+        local cameras = {}
+
+        local function doSkip()
+            if skipped then return end
+            skipped = true
+            dbg('[plane] jogador pulou a historia de aviao')
+        end
+
+        RegisterNUICallback('skipArrivalStory', function(data, cb)
+            doSkip()
+            if cb then cb('ok') end
+        end)
+
+        local function createCam(pos, lookAt, fov)
+            local cam = CreateCam('DEFAULT_SCRIPTED_CAMERA', true)
+            SetCamCoord(cam, pos.x, pos.y, pos.z)
+            if lookAt then PointCamAtCoord(cam, lookAt.x, lookAt.y, lookAt.z) end
+            SetCamFov(cam, fov or 50.0)
+            cameras[#cameras + 1] = cam
+            return cam
+        end
+
+        local function cleanupCameras()
+            for _, cam in ipairs(cameras) do
+                if DoesCamExist(cam) then
+                    DestroyCam(cam, false)
+                end
+            end
+            cameras = {}
+            RenderScriptCams(false, false, 0, true, false)
+        end
+
+        -- Monitor de tecla de pulo (Enter / Espaço)
+        CreateThread(function()
+            while not skipped do
+                if IsDisabledControlJustPressed(0, 22) or IsDisabledControlJustPressed(0, 201) or IsControlJustPressed(0, 191) or IsControlJustPressed(0, 201) then
+                    doSkip()
+                    break
+                end
+                Wait(0)
+            end
+        end)
 
         -- Posição segura para cutscene (fora de qualquer interior)
-        local cutscenePos = (Config.Arrival or {}).planeSpawnCoords or vec4(-1037.0, -2737.0, 13.8, 0.0)
+        local cutscenePos = (Config.Arrival or {}).planeSpawnCoords or vec4(-1037.0, -2737.0, 13.8, 330.0)
         SetEntityCoords(ped, cutscenePos.x, cutscenePos.y, cutscenePos.z, false, false, false, false)
+        SetEntityCollision(ped, false, false)
         SetEntityVisible(ped, false, false)
         FreezeEntityPosition(ped, true)
         Wait(200)
+
+        W2F.SendNui('showArrivalSkip', {})
+        W2F.SendNui('showCinemaBars', {})
 
         DoScreenFadeOut(500)
         while not IsScreenFadedOut() do Wait(0) end
@@ -50,136 +93,117 @@ function W2F.Arrival.Plane(ctx, spawnCoords)
             if not HasThisCutsceneLoaded('mp_intro_concat') then
                 RequestCutscene('mp_intro_concat', 8)
                 local deadline = GetGameTimer() + 6000
-                while not HasThisCutsceneLoaded('mp_intro_concat') and GetGameTimer() < deadline do
+                while not HasThisCutsceneLoaded('mp_intro_concat') and GetGameTimer() < deadline and not skipped do
                     Wait(100)
                 end
             end
-            if HasThisCutsceneLoaded('mp_intro_concat') then
+            if HasThisCutsceneLoaded('mp_intro_concat') and not skipped then
                 cutsceneOk = true
             end
         end)
 
-        if cutsceneOk then
+        if cutsceneOk and not skipped then
             dbg('[plane] cutscene mp_intro_concat carregada com sucesso')
             StartCutscene(0)
             DoScreenFadeIn(400)
 
-            -- Legendas sincronizadas
             local timings = { 500, 5000, 10000 }
             for i, subtitle in ipairs(subtitles) do
-                Wait(timings[i] or 1000)
-                if not IsCutsceneActive() then break end
+                local timerEnd = GetGameTimer() + (timings[i] or 1000)
+                while GetGameTimer() < timerEnd and not skipped do
+                    if not IsCutsceneActive() then break end
+                    Wait(50)
+                end
+                if skipped or not IsCutsceneActive() then break end
                 W2F.SendNui('showArrivalSubtitle', { text = subtitle, durationMs = 3500 })
             end
 
-            -- Aguarda cutscene terminar ou tecla de pulo (Enter / Espaço)
             local deadline = GetGameTimer() + 25000
-            while IsCutsceneActive() and GetGameTimer() < deadline do
-                if IsControlJustReleased(0, 191) or IsControlJustReleased(0, 201) then
-                    StopCutscene(true)
-                    break
-                end
+            while IsCutsceneActive() and GetGameTimer() < deadline and not skipped do
                 Wait(50)
             end
 
             if IsCutsceneActive() then StopCutscene(true) end
-            RemoveCutscene()
+            if HasThisCutsceneLoaded('mp_intro_concat') then RemoveCutscene() end
             dbg('[plane] cutscene concluida')
         else
             -- Travelling aéreo in-engine sobre o Aeroporto Internacional LSIA
             dbg('[plane] executando sobrevoo cinematografico in-engine sobre LSIA')
 
-            -- Áudio ambiente de turbinas de aeronave
             pcall(function()
                 PlaySoundFrontend(-1, 'Air_Defenses_Activated', 'DLC_sum20_Business_Hub_Soundset', false)
             end)
 
-            -- Câmera 1: Alta altitude sobre a pista de pouso com vista da torre
-            local cam1 = CreateCam('DEFAULT_SCRIPTED_CAMERA', true)
-            SetCamCoord(cam1, -1550.0, -3150.0, 95.0)
-            PointCamAtCoord(cam1, cutscenePos.x, cutscenePos.y, cutscenePos.z + 10.0)
-            SetCamFov(cam1, 50.0)
+            local cam1 = createCam(vec3(-1550.0, -3150.0, 95.0), vec3(cutscenePos.x, cutscenePos.y, cutscenePos.z + 10.0), 50.0)
             SetCamActive(cam1, true)
             RenderScriptCams(true, false, 0, true, false)
 
             DoScreenFadeIn(800)
             while not IsScreenFadedIn() do Wait(0) end
 
-            -- Legenda 1
             W2F.SendNui('showArrivalSubtitle', { text = subtitles[1], durationMs = 3500 })
 
-            -- Câmera 2: Travelling rasante aproximando do terminal de desembarque
-            local cam2 = CreateCam('DEFAULT_SCRIPTED_CAMERA', true)
-            SetCamCoord(cam2, -1080.0, -2780.0, 28.0)
-            PointCamAtCoord(cam2, cutscenePos.x, cutscenePos.y, cutscenePos.z + 1.5)
-            SetCamFov(cam2, 45.0)
-
-            SetCamActiveWithInterp(cam2, cam1, 5000, 1, 1)
-
-            -- Verifica skip durante a transição
-            local skipPressed = false
+            -- Aguarda cam1 com checagem de skip
             local timerStart = GetGameTimer()
-            while GetGameTimer() - timerStart < 5200 do
-                if IsControlJustReleased(0, 191) or IsControlJustReleased(0, 201) then
-                    skipPressed = true
-                    break
-                end
+            while GetGameTimer() - timerStart < 3500 and not skipped do
                 Wait(50)
             end
 
-            if not skipPressed then
-                if DoesCamExist(cam1) then DestroyCam(cam1, false) end
-                SetCamActive(cam2, true)
-
-                -- Legenda 2
-                W2F.SendNui('showArrivalSubtitle', { text = subtitles[2], durationMs = 3500 })
-
-                -- Câmera 3: Foco no saguão frontal de desembarque
-                local cam3 = CreateCam('DEFAULT_SCRIPTED_CAMERA', true)
-                SetCamCoord(cam3, -1045.0, -2745.0, 16.0)
-                PointCamAtCoord(cam3, cutscenePos.x, cutscenePos.y, cutscenePos.z + 1.0)
-                SetCamFov(cam3, 38.0)
-                SetCamActiveWithInterp(cam3, cam2, 3500, 1, 1)
+            if not skipped then
+                local cam2 = createCam(vec3(-1080.0, -2780.0, 28.0), vec3(cutscenePos.x, cutscenePos.y, cutscenePos.z + 1.5), 45.0)
+                SetCamActiveWithInterp(cam2, cam1, 4500, 1, 1)
 
                 timerStart = GetGameTimer()
-                while GetGameTimer() - timerStart < 3700 do
-                    if IsControlJustReleased(0, 191) or IsControlJustReleased(0, 201) then
-                        skipPressed = true
-                        break
-                    end
+                while GetGameTimer() - timerStart < 4700 and not skipped do
                     Wait(50)
                 end
 
-                if not skipPressed then
-                    -- Legenda 3
-                    W2F.SendNui('showArrivalSubtitle', { text = subtitles[3], durationMs = 3000 })
-                    Wait(2500)
-                end
+                if not skipped then
+                    W2F.SendNui('showArrivalSubtitle', { text = subtitles[2], durationMs = 3500 })
 
-                if DoesCamExist(cam3) then DestroyCam(cam3, false) end
+                    local cam3 = createCam(vec3(-1045.0, -2745.0, 16.0), vec3(cutscenePos.x, cutscenePos.y, cutscenePos.z + 1.0), 38.0)
+                    SetCamActiveWithInterp(cam3, cam2, 3500, 1, 1)
+
+                    timerStart = GetGameTimer()
+                    while GetGameTimer() - timerStart < 3700 and not skipped do
+                        Wait(50)
+                    end
+
+                    if not skipped then
+                        W2F.SendNui('showArrivalSubtitle', { text = subtitles[3], durationMs = 3000 })
+                        timerStart = GetGameTimer()
+                        while GetGameTimer() - timerStart < 2500 and not skipped do
+                            Wait(50)
+                        end
+                    end
+                end
             end
 
-            if DoesCamExist(cam1) then DestroyCam(cam1, false) end
-            if DoesCamExist(cam2) then DestroyCam(cam2, false) end
-            RenderScriptCams(false, false, 0, true, false)
+            cleanupCameras()
         end
 
-        -- Cleanup e entrega
-        DoScreenFadeOut(600)
+        -- Cleanup geral
+        cleanupCameras()
+        W2F.SendNui('hideArrivalSubtitle', {})
+        W2F.SendNui('hideArrivalSkip', {})
+        W2F.SendNui('hideCinemaBars', {})
+
+        DoScreenFadeOut(500)
         while not IsScreenFadedOut() do Wait(0) end
 
-        -- Define coordenadas seguras de destino final (calçada do desembarque LSIA)
         local targetCoords = spawnCoords or cutscenePos
         local okGround, safeZ = GetGroundZFor_3dCoord(targetCoords.x, targetCoords.y, targetCoords.z + 2.0, false)
         if okGround and safeZ > 1.0 then
             targetCoords = vec4(targetCoords.x, targetCoords.y, safeZ, targetCoords.w or 330.0)
         end
 
-        W2F.SendNui('hideArrivalSubtitle', {})
         SetEntityCoords(ped, targetCoords.x, targetCoords.y, targetCoords.z, false, false, false, false)
         SetEntityHeading(ped, targetCoords.w or 330.0)
+        SetEntityCollision(ped, true, true)
         SetEntityVisible(ped, true, false)
         FreezeEntityPosition(ped, false)
+
+        DoScreenFadeIn(600)
 
         dbg('[plane] historia concluida, entregando para spawn em %s %s %s', targetCoords.x, targetCoords.y, targetCoords.z)
         if ctx and ctx.handBack then
@@ -191,4 +215,3 @@ end
 if W2F.Arrival and W2F.Arrival.Register then
     W2F.Arrival.Register('plane', W2F.Arrival.Plane)
 end
-
