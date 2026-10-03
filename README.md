@@ -32,10 +32,16 @@ Cinematic multicharacter selection for **Qbox** — character create / select / 
   - Abertura de portas animadas com clarão solar cegante, gaivotas e caminhada do ped para fora em direção ao cais com detecção de solo firme (`GetGroundZFor_3dCoord`).
   - **Economia & Inventário:** Dinheiro e banco zerados (R$ 0), sem documentos (sem RG/CNH), 5 cigarros e isqueiro garantidos, 20% de chance de celular contrabandeado.
 - **Voo Comercial / Avião (`plane`):**
-  - Cutscene do GTA Online com pouso em Los Santos e legendas sincronizadas.
-  - **Economia & Inventário:** Dinheiro inicial padrão, smartphone garantido, RG (`id_card`) garantido, sem CNH, 40% chance de cigarros e isqueiro.
+  - Cutscene do GTA Online ou travelling aéreo cinematográfico *in-engine* sobrevoando o Aeroporto Internacional LSIA com áudio nativo de turbinas e legendas sincronizadas.
+  - **Economia & Inventário:** Dinheiro inicial padrão da cidade, smartphone garantido, RG (`id_card`) garantido, sem CNH, 40% chance de cigarros e isqueiro.
+- **Saída da Prisão (`prison`):**
+  - Sequência cinematográfica nos portões de metal de Bolingbroke Penitentiary com ônibus penitenciário (`pbus`), sirene distante e caminhada para a liberdade na Route 68 sob o sol do deserto.
+  - **Economia & Inventário:** R$ 50 de auxílio-soltura do Estado, banco zerado, RG garantido, sem CNH, 5 cigarros e isqueiro.
+- **Trem de Carga Clandestino (`train`):**
+  - Chegada em vagão de carga no pátio ferroviário de Davis / South Los Santos, com buzina de trem (`TRAIN_HORN`), freios de aço e salto do vagão para os trilhos industriais.
+  - **Economia & Inventário:** R$ 20 amarfanhados no bolso, banco zerado, garrafa de água, bandagem, 2 cigarros e sem documentos formais.
 - **Já estava aqui (`none` / `default`):**
-  - Sem cena inicial, libera o kit padrão nativo do servidor e abre o seletor de spawn.
+  - Sem cena inicial, libera o kit padrão nativo do servidor e abre diretamente a zona de desembarque (spawner).
 
 ## 🚒 Spawner Condicional por Profissão (`Config.Spawns`)
 
