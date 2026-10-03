@@ -22,7 +22,7 @@ local STORY_REGISTRY = {}
 
 function W2F.Arrival.Register(id, fn)
     STORY_REGISTRY[id] = fn
-    dbg('[arrival] historia registrada: %s', id)
+    print(('[w2f-multicharacter] [arrival] historia registrada: %s'):format(id))
 end
 
 --- Autoregistra as histórias embutidas após carregar os arquivos

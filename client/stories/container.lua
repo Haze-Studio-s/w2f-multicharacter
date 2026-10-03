@@ -382,3 +382,7 @@ function W2F.Arrival.Container(ctx, spawnCoords)
     end)
 end
 
+if W2F.Arrival and W2F.Arrival.Register then
+    W2F.Arrival.Register('container', W2F.Arrival.Container)
+end
+

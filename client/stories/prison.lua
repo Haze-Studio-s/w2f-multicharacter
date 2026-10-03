@@ -178,3 +178,7 @@ function W2F.Arrival.Prison(ctx, spawnCoords)
         end
     end)
 end
+
+if W2F.Arrival and W2F.Arrival.Register then
+    W2F.Arrival.Register('prison', W2F.Arrival.Prison)
+end

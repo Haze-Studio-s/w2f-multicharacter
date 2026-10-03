@@ -176,3 +176,7 @@ function W2F.Arrival.Train(ctx, spawnCoords)
         end
     end)
 end
+
+if W2F.Arrival and W2F.Arrival.Register then
+    W2F.Arrival.Register('train', W2F.Arrival.Train)
+end

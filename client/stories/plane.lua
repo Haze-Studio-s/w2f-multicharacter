@@ -188,3 +188,7 @@ function W2F.Arrival.Plane(ctx, spawnCoords)
     end)
 end
 
+if W2F.Arrival and W2F.Arrival.Register then
+    W2F.Arrival.Register('plane', W2F.Arrival.Plane)
+end
+

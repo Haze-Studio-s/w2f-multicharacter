@@ -1742,3 +1742,23 @@ lib.addCommand('setslot', {
     end
 end)
 
+--- Comando /relog ou /multichar: permite a qualquer jogador retornar para a tela de seleção
+lib.addCommand({'relog', 'multichar'}, {
+    help = 'Retorna para a tela de seleção de personagens (Multicharacter)',
+}, function(source)
+    if Config.UseQbox and GetResourceState('qbx_core') == 'started' then
+        pcall(function() exports.qbx_core:Logout(source) end)
+    else
+        TriggerClientEvent('w2f-multicharacter:client:openSelection', source)
+    end
+end)
+
+RegisterNetEvent('w2f-multicharacter:server:relog', function()
+    local src = source
+    if Config.UseQbox and GetResourceState('qbx_core') == 'started' then
+        pcall(function() exports.qbx_core:Logout(src) end)
+    else
+        TriggerClientEvent('w2f-multicharacter:client:openSelection', src)
+    end
+end)
+

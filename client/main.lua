@@ -603,6 +603,14 @@ end
 --- these commands are the only knob a developer needs to investigate the
 --- `floor-item-batman` style streaming/MLO crash.
 -----------------------------------------------------------------------------
+RegisterCommand('relog', function()
+    TriggerServerEvent('w2f-multicharacter:server:relog')
+end, false)
+
+RegisterCommand('multichar', function()
+    TriggerServerEvent('w2f-multicharacter:server:relog')
+end, false)
+
 RegisterCommand('w2fmc_diag', function()
     if W2F.Diag and W2F.Diag.PrintSnapshot then
         W2F.Diag.PrintSnapshot()

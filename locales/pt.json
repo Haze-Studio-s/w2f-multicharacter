@@ -1,0 +1,93 @@
+{
+    "ui": {
+        "title": "SELEÇÃO DE PERSONAGEM",
+        "subtitle": "Selecione um cidadão para entrar na cidade ou crie uma nova história",
+        "slot": "SLOT",
+        "empty_slot": "SLOT DISPONÍVEL",
+        "create_new": "CRIAR PERSONAGEM",
+        "play": "Entrar na Cidade",
+        "delete": "Apagar",
+        "back": "Voltar",
+        "cash": "Dinheiro",
+        "bank": "Banco",
+        "job": "Profissão",
+        "playtime": "Tempo de Jogo",
+        "last_location": "Última Localização",
+        "citizenid": "Registro Civil",
+        "nationality": "Nacionalidade",
+        "birthdate": "Data de Nascimento",
+        "gender": "Gênero",
+        "male": "Masculino",
+        "female": "Feminino",
+        "hints": {
+            "hover": "Passe o cursor sobre o personagem",
+            "select": "Clique para selecionar",
+            "spawn": "Pressione ENTER para entrar",
+            "delete": "Pressione DEL para apagar",
+            "back": "Pressione ESC para voltar"
+        },
+        "create": {
+            "title": "REGISTRO DE CIDADÃO",
+            "subtitle": "Defina os dados fundamentais da sua nova identidade",
+            "firstname": "Primeiro Nome",
+            "lastname": "Sobrenome",
+            "nationality": "Nacionalidade",
+            "gender": "Gênero",
+            "birthdate": "Data de Nascimento",
+            "submit": "Confirmar e Personalizar",
+            "cancel": "Cancelar",
+            "validation_name": "Nomes devem conter apenas letras, sem números ou símbolos.",
+            "validation_required": "Por favor, preencha todos os campos obrigatórios."
+        },
+        "confirm_delete": {
+            "title": "CONFIRMAÇÃO DE EXCLUSÃO",
+            "warning": "Esta ação é irreversível e permanente!",
+            "description": "Você está prestes a apagar todos os registros, propriedades, veículos e patrimônio do cidadão:",
+            "instruction": "Digite DELETAR no campo abaixo para confirmar a exclusão:",
+            "placeholder": "Digite DELETAR",
+            "button_confirm": "Excluir Definitivamente",
+            "button_cancel": "Cancelar"
+        },
+        "spawn": {
+            "title": "ZONA DE DESEMBARQUE",
+            "subtitle": "Escolha onde você deseja iniciar sua jornada hoje",
+            "first_spawn_title": "PRIMEIRO DESEMBARQUE",
+            "first_spawn_subtitle": "Selecione seu ponto de chegada ou apartamento inicial",
+            "apartment_tag": "APARTAMENTO"
+        }
+    },
+    "errors": {
+        "rate_limited": "Você está realizando ações muito rápido. Aguarde um instante.",
+        "denied_ownership": "Este personagem não pertence à sua conta.",
+        "missing_slot": "Nenhum slot disponível.",
+        "slot_in_use": "Este slot já foi ocupado. Escolha outro.",
+        "name_taken": "Este nome já está em uso por outro cidadão.",
+        "invalid_name": "Nome inválido. Use apenas letras.",
+        "invalid_birthdate": "Data de nascimento inválida.",
+        "invalid_payload": "Dados inválidos no formulário.",
+        "load_failed": "Não foi possível carregar este personagem.",
+        "timeout": "Tempo limite de comunicação com o servidor esgotado.",
+        "apartment_unavailable": "Apartamento indisponível no momento.",
+        "appearance_failed": "Não foi possível salvar a aparência do personagem."
+    },
+    "success": {
+        "character_created": "Personagem registrado com sucesso!",
+        "character_deleted": "Registro excluído com sucesso."
+    },
+    "story": {
+        "chapter_title": "Capítulo Final",
+        "container_1": "O calor sufocante. O cheiro de metal enferrujado. Escuridão total.",
+        "container_2": "Dias confinado. Uma promessa de recomeço do outro lado.",
+        "container_3": "Los Santos. Fim da viagem. O começo de tudo.",
+        "plane_1": "O voo foi longo. Los Santos cresceu devagar pela janela.",
+        "plane_2": "Primeira classe ou economia — o destino é o mesmo para todos.",
+        "plane_3": "Bem-vindo a Los Santos. Não há volta.",
+        "prison_1": "A pena foi paga. O portão de aço se abre.",
+        "prison_2": "Cinquenta pratas no bolso, registro civil e um horizonte aberto.",
+        "prison_3": "Bolingbroke ficou para trás. Bem-vindo à liberdade.",
+        "train_1": "O ranger do aço nos trilhos. O apito da locomotiva na madrugada.",
+        "train_2": "Sem documentos, vinte pratas no bolso e carvão nas mãos.",
+        "train_3": "Os trilhos te trouxeram a Los Santos. A linha termina aqui."
+    }
+}
+
