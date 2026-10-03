@@ -106,9 +106,23 @@ local function saveAppearanceThenFinish(appearance, cc, gender, coords, heading)
 
     W2F.Creator.HideMulticharUiForAppearance('appearance_saved')
 
+    local isNew = W2F.State.isNewCharacter == true
+    local preludeEnabled = (Config.Prelude or {}).enabled ~= false
+    local arrivalEnabled = (Config.Arrival or {}).enabled ~= false
+    local meta = W2F.State.pendingNewCharacterMeta or {}
+    local arrivalId = meta.arrivalId
+    local hasArrivalStory = arrivalEnabled and arrivalId and arrivalId ~= '' and arrivalId ~= 'none'
+
     --- Leave the appearance phase so the input-lock loop stops before spawn handoff.
+    --- Se for história cinematográfica, transiciona para 'finalizing' para que
+    --- o evento OnEnter('selection') do client/main.lua NÃO dispare BeginSkySequence!
     if W2F.Session.Is('appearance') then
-        W2F.Session.Transition('selection', 'appearance_saved')
+        if hasArrivalStory then
+            W2F.Session.Transition('finalizing', 'appearance_saved')
+        else
+            W2F.State.autoSpawnAfterCreation = false
+            W2F.Session.Transition('selection', 'appearance_saved')
+        end
         dbg('session phase after save=%s', tostring(W2F.Session.phase))
     end
     if W2F.Cleanup and W2F.Cleanup.EnableAllControls then
@@ -123,29 +137,81 @@ local function saveAppearanceThenFinish(appearance, cc, gender, coords, heading)
         return false
     end
 
+    local function finalizeArrivalSpawn(finalCoords)
+        dbg('finalizeArrivalSpawn iniciando em coords=%s', tostring(finalCoords))
+        local ped = PlayerPedId()
+
+        if finalCoords then
+            RequestCollisionAtCoord(finalCoords.x, finalCoords.y, finalCoords.z)
+            local deadline = GetGameTimer() + 3000
+            while not HasCollisionLoadedAroundEntity(ped) and GetGameTimer() < deadline do
+                Wait(50)
+            end
+            SetEntityCoords(ped, finalCoords.x, finalCoords.y, finalCoords.z, false, false, false, false)
+            SetEntityHeading(ped, finalCoords.w or 0.0)
+            TriggerServerEvent('w2f-multicharacter:server:setSpawnPosition', {
+                x = finalCoords.x,
+                y = finalCoords.y,
+                z = finalCoords.z,
+                w = finalCoords.w or 0.0,
+            })
+        end
+
+        FreezeEntityPosition(ped, false)
+        SetEntityVisible(ped, true, false)
+
+        if W2F.Hud and W2F.Hud.Hide then W2F.Hud.Hide() end
+        W2F.Characters.ClearPreviewPeds()
+        W2F.Camera.Destroy()
+        W2F.SetSelectionFocus(false, false)
+        W2F.SendNui('resetSelectionUI', {})
+        W2F.SendNui('hideArrivalSubtitle', {})
+        W2F.SendNui('hidePreludeCard', {})
+        W2F.SendNui('setVisible', { visible = false })
+        W2F.SendNui('hide', {})
+        SetNuiFocus(false, false)
+        if SetNuiFocusKeepInput then SetNuiFocusKeepInput(false) end
+
+        W2F.Cleanup.EnableAllControls()
+        W2F.Cleanup.ResetRoutingBucket()
+        if W2F.Cleanup.ReleaseSelectionWorldState then
+            W2F.Cleanup.ReleaseSelectionWorldState('arrival_complete')
+        end
+        W2F.ResetState()
+        DisplayRadar(true)
+        W2F.Cleanup.ResetPlayerPed()
+        W2F.Cleanup.FirePlayerLoadedEvents()
+        W2F.Cleanup.RestoreFrameworkUi(6)
+
+        W2F.Session.Transition('playing', 'arrival_complete')
+
+        Wait(300)
+        DoScreenFadeIn(1000)
+        if Config.Audio and Config.Audio.finalSpawn then
+            W2F.PlayW2FSound(Config.Audio.finalSpawn)
+        end
+    end
+
     W2F.Creator.HideMulticharUiForAppearance('finish_creation')
     if cc.directToSpawnPicker ~= false then
         W2F.Creator.HideMulticharUiForAppearance('before_spawn_picker')
 
         --- Prelúdio + História de Chegada (somente para personagens novos)
-        local isNew = W2F.State.isNewCharacter == true
-        local preludeEnabled = (Config.Prelude or {}).enabled ~= false
-        local arrivalEnabled = (Config.Arrival or {}).enabled ~= false
-
         if isNew and (preludeEnabled or arrivalEnabled) then
-            local meta = W2F.State.pendingNewCharacterMeta or {}
             if not meta.age and meta.birthdate then
                 local y = tonumber(tostring(meta.birthdate):match('^(%d%d%d%d)'))
                 if y then meta.age = math.max(18, 2026 - y) end
             end
-            -- Usa os coords temporários do slot visual como placeholder; o spawn
-            -- final é decidido pelo GoDirectlyToSpawn (sky picker ou apartamento).
-            -- O arrival.handBack chama GoDirectlyToSpawn após a cena.
+
             local function runArrivalThenSpawn()
-                W2F.Arrival.Play(meta, nil, function()
-                    -- Após a história terminar, entrega para o spawn picker normal
+                if hasArrivalStory then
+                    W2F.Arrival.Play(meta, nil, function(resolvedCoords)
+                        finalizeArrivalSpawn(resolvedCoords)
+                    end)
+                else
+                    -- Sem história cinematográfica: entrega para o spawn picker normal
                     W2F.Creator.GoDirectlyToSpawn()
-                end)
+                end
             end
 
             if preludeEnabled and W2F.Prelude and W2F.Prelude.Play then

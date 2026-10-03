@@ -105,18 +105,19 @@ function W2F.Arrival.Plane(ctx, spawnCoords)
         DoScreenFadeOut(600)
         while not IsScreenFadedOut() do Wait(0) end
 
+        -- Define coordenadas seguras de destino final (LSIA)
+        local targetCoords = spawnCoords or cutscenePos
+
         W2F.SendNui('hideArrivalSubtitle', {})
-        SetEntityCoords(ped, spawnCoords.x, spawnCoords.y, spawnCoords.z, false, false, false, false)
-        SetEntityHeading(ped, spawnCoords.w or 0.0)
+        SetEntityCoords(ped, targetCoords.x, targetCoords.y, targetCoords.z, false, false, false, false)
+        SetEntityHeading(ped, targetCoords.w or 0.0)
         SetEntityVisible(ped, true, false)
         FreezeEntityPosition(ped, false)
 
-        DoScreenFadeIn(700)
-        while not IsScreenFadedIn() do Wait(0) end
-
         dbg('[plane] historia concluida, entregando para spawn')
         if ctx and ctx.handBack then
-            ctx.handBack(spawnCoords)
+            ctx.handBack(targetCoords)
         end
     end)
 end
+

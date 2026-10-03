@@ -15,27 +15,32 @@ function W2F.Qbox.FetchCharacters()
         return result
     end
 
-    if not W2F.Qbox.IsActive() then
-        return safeAwait('w2f-multicharacter:server:getCharacters') or {}
+    -- 1. Prioriza o callback nativo do w2f-multicharacter (normalização de licenças e mapeamento completo)
+    local nativeList = safeAwait('w2f-multicharacter:server:getCharacters')
+    if type(nativeList) == 'table' and next(nativeList) then
+        return nativeList
     end
 
-    local characters, amount = safeAwait('qbx_core:server:getCharacters')
-    local list = {}
+    -- 2. Fallback para qbx_core se o nativo retornar vazio
+    if W2F.Qbox.IsActive() then
+        local characters, amount = safeAwait('qbx_core:server:getCharacters')
+        local list = {}
 
-    if characters then
-        local maxSlots = amount or Config.MaxCharacters or #Config.Scene.pedSlots
-        for i = 1, maxSlots do
-            if characters[i] then
-                list[i] = characters[i]
+        if characters then
+            local maxSlots = amount or Config.MaxCharacters or #Config.Scene.pedSlots
+            for i = 1, maxSlots do
+                if characters[i] then
+                    list[i] = characters[i]
+                end
             end
+        end
+
+        if next(list) then
+            return list
         end
     end
 
-    if next(list) then
-        return list
-    end
-
-    return safeAwait('w2f-multicharacter:server:getCharacters') or {}
+    return nativeList or {}
 end
 
 ---@return number? modelHash

@@ -860,16 +860,16 @@ lib.callback.register('w2f-multicharacter:server:finishCreation', function(sourc
     if Config.UseQbox and GetResourceState('qbx_core') == 'started' then
         local player = exports.qbx_core:GetPlayer(source)
         citizenid = player and player.PlayerData.citizenid
-        exports.qbx_core:Logout(source)
+        -- NOTA: O jogador permanece logado para que o prelúdio, a história de chegada
+        -- e o spawn final ocorram com o personagem ativo e os itens intactos.
     end
 
-    --- Clear selection on logout-to-finalize so a follow-up requestSpawn
-    --- can't reuse it before the next selectCharacter.
     local sess = session[source]
     if sess then
-        sess.selectedCitizenid = nil
-        --- Creation is genuinely complete (legacy flow) — stop the disconnect
-        --- rollback from ever touching this committed character.
+        if citizenid then
+            sess.selectedCitizenid = citizenid
+        end
+        --- Creation is genuinely complete — stop the disconnect rollback from touching this character.
         sess.creatingCitizenid = nil
     end
 
@@ -877,6 +877,28 @@ lib.callback.register('w2f-multicharacter:server:finishCreation', function(sourc
         W2F.Database.Log(license, citizenid, 'finish_appearance', nil)
     end
     return true
+end)
+
+RegisterNetEvent('w2f-multicharacter:server:setSpawnPosition', function(coords)
+    local src = source
+    if not coords or type(coords) ~= 'table' then return end
+    local x = tonumber(coords.x)
+    local y = tonumber(coords.y)
+    local z = tonumber(coords.z)
+    local w = tonumber(coords.w or coords.heading or 0.0)
+    if not x or not y or not z then return end
+
+    if Config.UseQbox and GetResourceState('qbx_core') == 'started' then
+        local player = exports.qbx_core:GetPlayer(src)
+        if player then
+            local pos = vec4(x, y, z, w)
+            player.Functions.SetPlayerData('position', pos)
+            pcall(function() exports.qbx_core:Save(src) end)
+            if W2F.Debug then
+                W2F.Debug('[server] posicao de spawn persistida para src=%s: (%.2f, %.2f, %.2f)', src, x, y, z)
+            end
+        end
+    end
 end)
 
 local function resolveAppearanceModel(appearance, playerData)

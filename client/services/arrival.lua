@@ -95,8 +95,22 @@ function W2F.Arrival.Play(meta, spawnCoords, onDone)
         return
     end
 
+    -- Fallback seguro para coordenadas de spawn de acordo com a história
+    local finalSpawnCoords = spawnCoords
+    if not finalSpawnCoords then
+        if arrivalId == 'container' then
+            local contCfg = cfg.container or {}
+            local contCoords = contCfg.spawnCoords or vec4(428.34, -2992.08, 5.90, 185.0)
+            local exitOffset = contCfg.exitOffset or vec3(0.0, 4.0, 0.0)
+            finalSpawnCoords = vec4(contCoords.x + exitOffset.x, contCoords.y + exitOffset.y, contCoords.z + exitOffset.z, contCoords.w)
+        elseif arrivalId == 'plane' then
+            finalSpawnCoords = cfg.planeSpawnCoords or vec4(-1037.0, -2737.0, 13.8, 330.0)
+        end
+    end
+
     dbg('[arrival] executando historia: %s', arrivalId)
 
-    local ctx = buildCtx(spawnCoords, onDone)
-    storyFn(ctx, spawnCoords)
+    local ctx = buildCtx(finalSpawnCoords, onDone)
+    storyFn(ctx, finalSpawnCoords)
 end
+

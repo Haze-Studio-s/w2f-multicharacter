@@ -70,6 +70,40 @@ function W2F.Prelude.Play(charData, onDone)
     dbg('[prelude] iniciando para %s (%s, %s)', charName, charAge, charNat)
 
     CreateThread(function()
+        -- 0. Câmera de corte seco / close-up dramático no rosto com whoosh
+        local ped = PlayerPedId()
+        SetEntityVisible(ped, true, false)
+        FreezeEntityPosition(ped, true)
+
+        local headPos = GetPedBoneCoords(ped, 31086, 0.0, 0.0, 0.0)
+        if headPos == vec3(0.0, 0.0, 0.0) or headPos.z < 1.0 then
+            headPos = GetEntityCoords(ped) + vec3(0.0, 0.0, 0.65)
+        end
+        local heading = GetEntityHeading(ped)
+        local rad = math.rad(heading)
+        -- Posiciona a câmera a ~1.05m à frente do rosto
+        local camPos = vec3(
+            headPos.x + math.sin(-rad) * 1.05,
+            headPos.y + math.cos(-rad) * 1.05,
+            headPos.z + 0.05
+        )
+        local preludeCam = CreateCam('DEFAULT_SCRIPTED_CAMERA', true)
+        SetCamCoord(preludeCam, camPos.x, camPos.y, camPos.z)
+        PointCamAtCoord(preludeCam, headPos.x, headPos.y, headPos.z)
+        SetCamFov(preludeCam, 34.0)
+        SetCamActive(preludeCam, true)
+        RenderScriptCams(true, false, 0, true, false)
+
+        -- Revela a tela após a saída do editor de aparência
+        DoScreenFadeIn(400)
+        while not IsScreenFadedIn() do Wait(0) end
+
+        -- Som de Whoosh no corte seco
+        pcall(function()
+            PlaySoundFrontend(-1, '1st_Person_Transition', 'PLAYER_SWITCH_CUSTOM_SOUNDSET', false)
+        end)
+        Wait(60)
+
         -- 1. Freeze do tempo + efeito P&B
         SetTimeScale(timeScaleVal)
         safeCamEffect('HeistCelebPassBW', 0, true)
@@ -99,13 +133,21 @@ function W2F.Prelude.Play(charData, onDone)
         })
         Wait(chapterMs)
 
-        -- 6. Restaurar tempo + remover efeito P&B
+        -- 6. Fade out para transicionar para a história
+        DoScreenFadeOut(600)
+        while not IsScreenFadedOut() do Wait(0) end
+
+        -- 7. Restaurar tempo + remover efeito P&B + destruir câmera
         SetTimeScale(1.0)
         safeStopCamEffect('HeistCelebPassBW')
-        Wait(200)
+        if preludeCam and DoesCamExist(preludeCam) then
+            DestroyCam(preludeCam, false)
+        end
+        RenderScriptCams(false, false, 0, true, false)
 
-        -- 7. Esconder overlay do prelúdio e disparar callback
+        -- 8. Esconder overlay do prelúdio e disparar callback
         W2F.SendNui('hidePrelude', {})
+        Wait(200)
 
         dbg('[prelude] concluido, entregando para arrival')
         if onDone then

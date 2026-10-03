@@ -919,6 +919,32 @@ function W2F.Characters.BuildLineup(characters)
     end
 
     W2F.Characters.RefreshHighlights()
+
+    local list = {}
+    for i = 1, maxVisual do
+        local entry = W2F.State.previewPeds[i]
+        if entry and entry.character and not entry.isEmpty then
+            local char = entry.character
+            local cinfo = char.charinfo or {}
+            local job = char.job or {}
+            list[i] = {
+                slot = i,
+                name = ('%s %s'):format(cinfo.firstname or 'Cidadão', cinfo.lastname or ''),
+                citizenid = char.citizenid,
+                job = job.label or job.name or 'Desempregado',
+                isEmpty = false,
+            }
+        else
+            list[i] = {
+                slot = i,
+                isEmpty = true,
+            }
+        end
+    end
+    W2F.SendNui('setCharactersList', {
+        characters = list,
+        maxSlots = maxVisual,
+    })
 end
 
 --- Selects the lineup ped matching the given citizenid. Used by the
@@ -1009,7 +1035,9 @@ function W2F.Characters.FindPedAtCursor(customX, customY)
         local ped = entry.ped
         if ped and DoesEntityExist(ped) then
             local pedCoords = GetEntityCoords(ped)
-            local maxAllowedDist = entry.isEmpty and 1.6 or 1.25
+            local isRealChar = entry.character and not entry.isEmpty
+            -- Personagens reais têm raio generoso; slots vazios têm raio restrito ao centro do pedestal
+            local maxAllowedDist = isRealChar and 1.35 or 0.75
 
             -- Amostra 3 alturas no corpo do Ped: pernas/quadril, peito, cabeça
             local samplePoints = {
@@ -1038,6 +1066,10 @@ function W2F.Characters.FindPedAtCursor(customX, customY)
 
             if pedMinDist and pedMinDist <= maxAllowedDist then
                 local score = pedMinDist
+                -- Bônus de 40% de preferência para personagens reais (evita que slot vazio adjacente roube clique)
+                if isRealChar then
+                    score = score * 0.6
+                end
                 if currentHovered == ped then
                     score = score * stickiness
                 end
@@ -1058,19 +1090,13 @@ function W2F.Characters.FindPedAtCursor(customX, customY)
 end
 
 --- Legacy ray-cylinder picker — used as fallback when screen-space misses.
---- The screen radius now matches the primary picker (`pedSelectScreenRadius`)
---- so hovering at the edge of a ped doesn't suddenly fall through to a
---- much smaller pick zone.
 function W2F.Characters.FindPedNearRay(origin, direction)
     local bestSlot, bestEntry, bestScore = nil, nil, nil
     local interaction = Config.Interaction
     local maxDist = interaction.hoverDistance or interaction.rayMaxDistance or 120.0
-    local selectRadius = interaction.pedSelectRadius or 3.0
-    --- Use the same screenRadius the primary picker uses. The legacy default
-    --- of 110 was tighter than the primary 240, which created a dead zone
-    --- around peds where neither picker accepted the click.
+    local selectRadius = interaction.pedSelectRadius or 2.5
     local screenRadius = interaction.pedSelectScreenRadiusFallback
-        or interaction.pedSelectScreenRadius or 240
+        or interaction.pedSelectScreenRadius or 140
     local aimHeight = interaction.pedAimHeight or 0.95
 
     local cursorX, cursorY = GetNuiCursorPosition()
@@ -1082,6 +1108,7 @@ function W2F.Characters.FindPedNearRay(origin, direction)
     for slot, entry in pairs(W2F.State.previewPeds) do
         local ped = entry.ped
         if ped and DoesEntityExist(ped) then
+            local isRealChar = entry.character and not entry.isEmpty
             local pedCoords = GetEntityCoords(ped)
             local pedTarget = vector3(pedCoords.x, pedCoords.y, pedCoords.z + aimHeight)
 
@@ -1107,10 +1134,16 @@ function W2F.Characters.FindPedNearRay(origin, direction)
                 rayDist = #(pedTarget - closest)
             end
 
-            local viaScreen = screenDist and screenDist <= screenRadius
-            local viaRay = rayDist and rayDist <= selectRadius
+            local maxScreenRad = isRealChar and screenRadius or (screenRadius * 0.6)
+            local maxRayRad = isRealChar and selectRadius or (selectRadius * 0.6)
+
+            local viaScreen = screenDist and screenDist <= maxScreenRad
+            local viaRay = rayDist and rayDist <= maxRayRad
             if viaScreen or viaRay then
                 local score = screenDist or (rayDist * 100.0)
+                if isRealChar then
+                    score = score * 0.6
+                end
                 if not bestScore or score < bestScore then
                     bestScore = score
                     bestSlot = slot
@@ -1279,10 +1312,10 @@ function W2F.Characters.AutoSelectDefault()
         return true
     end
 
-    -- 3. Se todos os slots forem vazios (conta nova), abre criação no slot 1
+    -- 3. Se todos os slots forem vazios (conta nova), apenas foca no slot 1 (não abre criação forçada)
     local firstEntry = W2F.State.previewPeds[1]
     if firstEntry and firstEntry.isEmpty then
-        W2F.Characters.OpenCreateForSlot(1)
+        W2F.Characters.SelectEmptySlot(1)
         return true
     end
 

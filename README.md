@@ -15,9 +15,35 @@ Cinematic multicharacter selection for **Qbox** — character create / select / 
 - **Cinematografia Orgânica:** Câmera com micro hand-shake orgânico ao inspecionar o personagem.
 - **Slots Dinâmicos por Jogador:** Suporte a slots individuais configuráveis via comando `/setslot <id> <slots>` ou exports.
 - **Phone Number Resolver Desacoplado:** Compatibilidade nativa com `lb-phone`, `qs-smartphone-pro`, `qs-smartphone`, `yseries` e fallback no DB.
-- **Modal de Criação:** Validação reativa de nomes, campos de data e seleção de nacionalidade/gênero.
-- **Deleção Segura:** Protocolo com exigência de digitação `DELETAR` e bloqueio anti-dupe / anti-spam.
+- **Modal de Criação:** Validação reativa de nomes, campos de data, seleção de nacionalidade/gênero e escolha de história de chegada (Contêiner, Avião ou Já estava aqui).
+- **Deleção Segura:** Protocolo com exigência de digitação `DELETAR` e bloqueio anti-dupe / anti-spam com cascata SQL defensiva.
 - **Locales Nativos:** Tradução integral em português do Brasil (`locales/pt-br.json`).
+
+## 🎬 Sistema de Histórias de Chegada & Prelúdio Cinematográfico
+
+- **Prelúdio Cinematográfico (`Config.Prelude`):**
+  - Close-up facial dramático com efeito sonoro de *Whoosh* (`1st_Person_Transition`).
+  - Congelamento temporal (`SetTimeScale(0.1)`) com filtro clássico preto e branco (`HeistCelebPassBW`) e risco de vinil.
+  - Cartão de identidade de cinema com entrada em impacto (*slam-in*) exibindo Nome, Idade e Nacionalidade.
+  - Transição de capítulo em corte diagonal revelando local, horário in-game e nome do capítulo.
+- **Contêiner do Coiote (`container`):**
+  - Spawn em cais portuário realista com navios cargueiros e guindastes (`vec4(428.34, -2992.08, 5.90, 185.0)`).
+  - Sequência 3D com penumbra interior no contêiner (`tr_prop_tr_container_01a`), som de metal rangendo e buzina de navio.
+  - Abertura de portas animadas com clarão solar cegante, gaivotas e caminhada do ped para fora em direção à cidade.
+  - **Economia & Inventário:** Dinheiro e banco zerados (R$ 0), sem documentos (sem RG/CNH), 5 cigarros e isqueiro garantidos, 20% de chance de celular contrabandeado.
+- **Voo Comercial / Avião (`plane`):**
+  - Cutscene do GTA Online com pouso em Los Santos e legendas sincronizadas.
+  - **Economia & Inventário:** Dinheiro inicial padrão, smartphone garantido, RG (`id_card`) garantido, sem CNH, 40% chance de cigarros e isqueiro.
+- **Já estava aqui (`none` / `default`):**
+  - Sem cena inicial, libera o kit padrão nativo do servidor e abre o seletor de spawn.
+
+## 🚒 Spawner Condicional por Profissão (`Config.Spawns`)
+
+O seletor de spawn filtra as opções disponíveis na cidade conforme o emprego do personagem:
+- **Polícia (`police`, `sheriff`, `state`):** Apenas *Última Localização* e *Departamento de Polícia*.
+- **Paramédico / Médico (`ambulance`, `ems`, `doctor`):** Apenas *Última Localização* e *Hospital Central*.
+- **Bombeiro (`firefighter`, `fire`):** Apenas *Última Localização* e *Corpo de Bombeiros*.
+- **Civil / Demais Trabalhos:** Apenas *Última Localização* e *Centro da Cidade (Praça Central)*.
 
 ## Requirements
 

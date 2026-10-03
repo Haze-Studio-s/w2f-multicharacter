@@ -91,6 +91,8 @@ local TRANSITIONS = {
     },
     finalizing = {
         playing = true,
+        sky_picker = true,
+        selection = true,
         recovering = true,
         idle = true,
     },

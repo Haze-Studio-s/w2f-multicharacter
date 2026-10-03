@@ -854,9 +854,9 @@ Config.Arrival = {
         model = 'tr_prop_tr_container_01a',
         --- Prop de colisão física (invisível; assume a colisão quando anim começa)
         collisionProp = 'prop_ld_container',
-        --- Coordenadas de spawn do contêiner no porto
-        --- (onde o contêiner aparece — o jogador sai andando para a frente)
-        spawnCoords = vec4(-1647.0, -3043.0, 13.9, 50.0),
+        --- Coordenadas de spawn do contêiner no porto marítimo (Cais do Porto / Terminal)
+        --- (onde o contêiner aparece — o jogador sai andando para a frente em direção ao cais)
+        spawnCoords = vec4(428.34, -2992.08, 5.90, 185.0),
         --- Offset do interior do contêiner (onde o ped aparece inicialmente)
         interiorOffset = vec3(0.0, -2.0, 1.2),
         --- Offset de câmera exterior (plano das portas abrindo)

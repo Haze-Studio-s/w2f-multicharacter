@@ -80,8 +80,8 @@ end
 function W2F.Arrival.Container(ctx, spawnCoords)
     local cfg = (Config.Arrival or {}).container or {}
 
-    -- Coordenadas do contêiner no porto (configurável)
-    local containerCoords  = cfg.spawnCoords or vec4(-1647.0, -3043.0, 13.9, 50.0)
+    -- Coordenadas do contêiner no cais do porto marítimo (Terminal / Elysian Island)
+    local containerCoords  = cfg.spawnCoords or vec4(428.34, -2992.08, 5.90, 185.0)
     local containerModel   = cfg.model       or 'tr_prop_tr_container_01a'
     local collisionModel   = cfg.collisionProp or 'prop_ld_container'
     local animDict         = cfg.animDict    or 'container@'
@@ -176,6 +176,10 @@ function W2F.Arrival.Container(ctx, spawnCoords)
         local cam1 = createLookAtCam(camInteriorPos, insidePos, 55.0)
         SetCamActive(cam1, true)
         RenderScriptCams(true, false, 0, true, false)
+
+        -- Revela o interior do contêiner para o jogador
+        DoScreenFadeIn(800)
+        while not IsScreenFadedIn() do Wait(0) end
 
         -- NUI: legenda 1 + escuridão
         W2F.SendNui('showArrivalSubtitle', { text = subtitles[1], durationMs = 3500 })
@@ -297,18 +301,21 @@ function W2F.Arrival.Container(ctx, spawnCoords)
         W2F.SendNui('hideArrivalSubtitle', {})
         pcall(function() AnimpostfxStopAll() end)
 
-        dbg('[container] historia concluida, entregando para spawn em %s %s %s', spawnCoords.x, spawnCoords.y, spawnCoords.z)
+        -- Define coordenadas seguras de destino final
+        local targetCoords = spawnCoords or vec4(exitCoords.x, exitCoords.y, exitCoords.z, containerCoords.w or 0.0)
+
+        dbg('[container] historia concluida, entregando para spawn em %s %s %s', targetCoords.x, targetCoords.y, targetCoords.z)
 
         -- Teleporta para os coords de spawn reais
-        SetEntityCoords(ped, spawnCoords.x, spawnCoords.y, spawnCoords.z, false, false, false, false)
-        SetEntityHeading(ped, spawnCoords.w or 0.0)
+        SetEntityCoords(ped, targetCoords.x, targetCoords.y, targetCoords.z, false, false, false, false)
+        SetEntityHeading(ped, targetCoords.w or 0.0)
+        FreezeEntityPosition(ped, false)
+        SetEntityVisible(ped, true, false)
 
-        -- 10. Fade in e entrega
-        DoScreenFadeIn(700)
-        while not IsScreenFadedIn() do Wait(0) end
-
+        -- Entrega o controle mantendo a tela em fade para o spawner/creator fazer a transição final limpa
         if ctx and ctx.handBack then
-            ctx.handBack(spawnCoords)
+            ctx.handBack(targetCoords)
         end
     end)
 end
+

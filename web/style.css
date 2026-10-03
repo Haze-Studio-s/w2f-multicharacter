@@ -976,7 +976,7 @@ html, body {
     position: fixed;
     inset: 0;
     z-index: 9000;
-    background: #000;
+    background: transparent;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1014,9 +1014,13 @@ html, body {
 
 .prelude-card-inner {
     text-align: center;
-    padding: 2rem 4rem;
+    padding: 2.2rem 4.5rem;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(6px);
+    border-radius: var(--radius-sm);
     border-top: 2px solid var(--accent);
     border-bottom: 2px solid var(--accent);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
 }
 .prelude-name {
     font-family: 'JetBrains Mono', monospace;

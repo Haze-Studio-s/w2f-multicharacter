@@ -197,10 +197,11 @@ function renderSlotsNav() {
             btn.classList.add('active');
         }
 
-        if (char && !char.isEmpty && char.name) {
+        if (char && !char.isEmpty && (char.name || char.citizenid)) {
+            const charName = char.name || 'Cidadão';
             btn.innerHTML = `
                 <span class="slot-pill-num">${pad2(slot)}</span>
-                <span class="slot-pill-name">${char.name}</span>
+                <span class="slot-pill-name">${charName}</span>
             `;
             btn.addEventListener('click', () => {
                 if (state.spawnBusy || state.createBusy) return;
@@ -214,7 +215,11 @@ function renderSlotsNav() {
             `;
             btn.addEventListener('click', () => {
                 if (state.spawnBusy || state.createBusy) return;
-                post('selectEmptySlot', { slot: slot });
+                if (state.selectedSlot === slot) {
+                    post('openCreateForSlot', { slot: slot });
+                } else {
+                    post('selectEmptySlot', { slot: slot });
+                }
             });
         }
 
@@ -681,7 +686,7 @@ const handlers = {
         const card    = document.getElementById('preludeCard');
         if (!overlay || !card) return;
 
-        overlay.classList.remove('hidden');
+        overlay.classList.remove('hidden', 'fade-out-fast');
         overlay.classList.add('active');
 
         const nameEl = document.getElementById('preludeName');
@@ -692,7 +697,7 @@ const handlers = {
         if (ageEl)  ageEl.textContent  = data?.age  ? `${data.age} anos` : '';
         if (natEl)  natEl.textContent  = data?.nationality || '';
 
-        card.classList.remove('hidden');
+        card.classList.remove('hidden', 'fade-out');
         requestAnimationFrame(() => card.classList.add('slam-in'));
     },
 
@@ -701,7 +706,10 @@ const handlers = {
         const chapterCard = document.getElementById('chapterCard');
         if (!chapterCard) return;
 
-        if (preludeCard) preludeCard.classList.add('fade-out');
+        if (preludeCard) {
+            preludeCard.classList.remove('slam-in');
+            preludeCard.classList.add('fade-out');
+        }
 
         const titleEl = document.getElementById('chapterTitle');
         const placeEl = document.getElementById('chapterPlace');
@@ -711,7 +719,7 @@ const handlers = {
         if (placeEl) placeEl.textContent = data?.place || 'Los Santos';
         if (timeEl)  timeEl.textContent  = data?.time  || '';
 
-        chapterCard.classList.remove('hidden');
+        chapterCard.classList.remove('hidden', 'diagonal-out');
         requestAnimationFrame(() => chapterCard.classList.add('diagonal-in'));
 
         setTimeout(() => {

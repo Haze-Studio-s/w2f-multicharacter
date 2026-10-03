@@ -198,11 +198,15 @@ function W2F.Interaction.HandleClick()
     local slot, entry = pickPedThisFrame()
 
     if slot and entry then
-        if entry.isEmpty then
-            W2F.MarkClick()
-            W2F.Characters.OpenCreateForSlot(slot)
-        elseif entry.character and W2F.State.selectedPed ~= entry.ped then
-            W2F.Characters.SelectSlot(slot, entry)
+        if entry.character and not entry.isEmpty then
+            if W2F.State.selectedPed ~= entry.ped then
+                W2F.Characters.SelectSlot(slot, entry)
+            end
+        elseif entry.isEmpty then
+            if W2F.State.selectedSlot ~= slot then
+                W2F.MarkClick()
+                W2F.Characters.SelectEmptySlot(slot)
+            end
         end
     end
 
@@ -390,10 +394,14 @@ RegisterNUICallback('clickWorld', function(data, cb)
     end
 
     if slot and entry then
-        if entry.isEmpty then
-            W2F.Characters.OpenCreateForSlot(slot)
-        elseif entry.character and W2F.State.selectedPed ~= entry.ped then
-            W2F.Characters.SelectSlot(slot, entry)
+        if entry.character and not entry.isEmpty then
+            if W2F.State.selectedPed ~= entry.ped then
+                W2F.Characters.SelectSlot(slot, entry)
+            end
+        elseif entry.isEmpty then
+            if W2F.State.selectedSlot ~= slot then
+                W2F.Characters.SelectEmptySlot(slot)
+            end
         end
     end
     cb('ok')
@@ -408,10 +416,10 @@ RegisterNUICallback('selectSlot', function(data, cb)
     if slot then
         local entry = W2F.State.previewPeds[slot]
         if entry then
-            if entry.isEmpty then
-                W2F.Characters.OpenCreateForSlot(slot)
-            elseif entry.character then
+            if entry.character and not entry.isEmpty then
                 W2F.Characters.SelectSlot(slot, entry)
+            else
+                W2F.Characters.SelectEmptySlot(slot)
             end
         end
     end
@@ -425,8 +433,23 @@ RegisterNUICallback('selectEmptySlot', function(data, cb)
     end
     local slot = tonumber(data and data.slot)
     if slot then
-        W2F.Characters.OpenCreateForSlot(slot)
+        local entry = W2F.State.previewPeds[slot]
+        if entry and entry.character and not entry.isEmpty then
+            W2F.Characters.SelectSlot(slot, entry)
+        else
+            W2F.Characters.SelectEmptySlot(slot)
+        end
     end
+    cb('ok')
+end)
+
+RegisterNUICallback('openCreateForSlot', function(data, cb)
+    if W2F.State.isCreatePanelOpen then
+        cb('ok')
+        return
+    end
+    local slot = tonumber(data and data.slot) or W2F.State.selectedSlot or 1
+    W2F.Characters.OpenCreateForSlot(slot)
     cb('ok')
 end)
 
