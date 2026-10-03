@@ -142,7 +142,14 @@ If selection does not open, check the server console for missing-table warnings 
 | `Config.UI.brandSubtitle` | `config.lua` | Subtítulo do topo (default: 'Seleção de Cidadão') |
 | `Config.Spawns` | `config.lua` | Spawn locations in the sky picker |
 | `Config.CharacterCreation` | `config.lua` | Name/DOB limits, apartment vs spawn-picker flow |
-| `Config.Debug` | `config.lua` | Dev commands (`/w2fmc_open`, `/w2fmc_state`, etc.) |
+## Comandos Disponíveis
+
+| Comando | Permissão | Descrição |
+|---|---|---|
+| `/relog` ou `/multichar` | Todos | Desconecta do personagem atual com segurança e reabre a tela de seleção |
+| `/setslot <id> <slots>` | Admin | Define a quantidade máxima de slots de personagem de um jogador |
+| `/w2fmc_diag` | Todos | Exibe diagnóstico de saúde e streaming do multicharacter no F8 |
+| `/w2fmc_safemode` | Dev | Ativa perfil de modo de segurança para investigação de streaming |
 
 ## License
 
