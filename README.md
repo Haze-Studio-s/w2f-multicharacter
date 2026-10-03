@@ -27,9 +27,9 @@ Cinematic multicharacter selection for **Qbox** — character create / select / 
   - Cartão de identidade de cinema com entrada em impacto (*slam-in*) exibindo Nome, Idade e Nacionalidade.
   - Transição de capítulo em corte diagonal revelando local, horário in-game e nome do capítulo.
 - **Contêiner do Coiote (`container`):**
-  - Spawn em cais portuário realista com navios cargueiros e guindastes (`vec4(428.34, -2992.08, 5.90, 185.0)`).
+  - Spawn em cais portuário realista com navios cargueiros e guindastes (`vec4(428.34, -3005.00, 5.90, 180.0)` em terra firme ampla).
   - Sequência 3D com penumbra interior no contêiner (`tr_prop_tr_container_01a`), som de metal rangendo e buzina de navio.
-  - Abertura de portas animadas com clarão solar cegante, gaivotas e caminhada do ped para fora em direção à cidade.
+  - Abertura de portas animadas com clarão solar cegante, gaivotas e caminhada do ped para fora em direção ao cais com detecção de solo firme (`GetGroundZFor_3dCoord`).
   - **Economia & Inventário:** Dinheiro e banco zerados (R$ 0), sem documentos (sem RG/CNH), 5 cigarros e isqueiro garantidos, 20% de chance de celular contrabandeado.
 - **Voo Comercial / Avião (`plane`):**
   - Cutscene do GTA Online com pouso em Los Santos e legendas sincronizadas.
