@@ -868,10 +868,17 @@ Config.Arrival = {
         openAnim = 'action_container',
         openPhase = 0.66,
         doorAxis = -1,
-        doorOpenMs = 1000,
+        doorOpenMs = 1200,
+        --- Distância entre as portas e o destino (gap do MRI = 1.4)
+        gap = 1.4,
+        --- Piso acima da base do modelo (m)
+        floor = 0.12,
+        fov = 50.0,
+        streamTimeout = 10000,
+        blendOutMs = 1200,
         darkness = 'int_extlight_none_dark',
         migrants = { 'a_m_m_mexlabor_01', 'a_m_y_mexthug_01', 'a_m_m_soucent_01' },
-        beats = { dark = 2000, impact = 1600, open = 2000, out = 3500 },
+        beats = { dark = 2400, impact = 1800, open = 2400, out = 4000 },
         sounds = {
             banks = {
                 script = { 'DLC_HEI4/DLC_HEI4_Submarine', 'Container_Lifter', 'DLC_APARTMENT/APT_Yacht_01' },

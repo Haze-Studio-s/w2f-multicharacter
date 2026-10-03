@@ -1,14 +1,16 @@
 --- W2F.Arrival.Container — História de Chegada: Contêiner do Coiote
 ---
---- Engenharia reversa e fusão 1:1 do mri_Qmultichar (v1.4.0 / YouTube @ 5:18).
---- Destaques técnicos:
----   1. Cena Sincronizada (CreateSynchronizedScene): portas seguras no frame 0.0 e pulo direto para 0.66.
----   2. Feixes de Luz Volumétrica (DrawSpotLight): raios quentes de sol passando pelas frestas das portas no escuro.
----   3. Tranco do Guindaste: LARGE_EXPLOSION_SHAKE + som de impacto (Container_Impact_Land) + sobressalto (flinch).
----   4. Animações Encadeadas: cower no chão, sobressalto com o tranco, e OpenSequenceTask com 'exit' ao levantar.
----   5. Paisagem Sonora GTA Nativa: áudio submarino H4, estalos de guindaste, buzina de cargueiro e gaivotas.
----   6. Destino Seguro no Pátio do Porto: portas abrem em direção ao Norte (longe da água).
----   7. Suporte Integral a Skip ([ENTER] PULAR).
+--- Engenharia Reversa e Transplante Fiel 1:1 do mri_Qmultichar (v1.4.0).
+--- Utiliza exatamente a mesma matemática do MRI:
+---   1. GetModelDimensions() para medir o prop real.
+---   2. Alinhamento de porta na coordenada de destino (spawn.heading e gap).
+---   3. Raycast descendente dinâmico (StartExpensiveSynchronousShapeTestLosProbe) para encontrar o chão interno exato.
+---   4. Posicionamento de jogador e NPCs via inside(x, depth, z) em espaço local do contêiner.
+---   5. Câmera interna com interpolação suave (camA), foco no rosto/cabeça sem recortes e feixes volumétricos (DrawSpotLight).
+---   6. Tranco de impacto com ShakeCam('LARGE_EXPLOSION_SHAKE') e sobressalto (flinch/cower).
+---   7. Abertura sincronizada das portas (fase 0.66) e clarão solar.
+---   8. Sequência de saída standAndWalk (TaskPlayAnim exit + TaskGoStraightToCoord).
+---   9. Sistema de áudio GTA nativo via RequestScriptAudioBank / RequestAmbientAudioBank.
 
 W2F.Arrival = W2F.Arrival or {}
 
@@ -16,97 +18,134 @@ local function dbg(...)
     if W2F.Debug then W2F.Debug(...) end
 end
 
-local function requestModelSafe(modelHash, timeoutMs)
-    if not IsModelInCdimage(modelHash) then
-        dbg('[container] modelo %s nao encontrado no jogo', modelHash)
-        return false
-    end
-    RequestModel(modelHash)
-    local deadline = GetGameTimer() + (timeoutMs or 10000)
-    while not HasModelLoaded(modelHash) and GetGameTimer() < deadline do
-        Wait(50)
-    end
-    return HasModelLoaded(modelHash)
-end
-
-local function requestAnimDict(dict, timeoutMs)
-    RequestAnimDict(dict)
-    local deadline = GetGameTimer() + (timeoutMs or 6000)
-    while not HasAnimDictLoaded(dict) and GetGameTimer() < deadline do
-        Wait(50)
-    end
-    return HasAnimDictLoaded(dict)
-end
-
-local function createLookAtCam(camPos, lookAt, fov)
-    local cam = CreateCam('DEFAULT_SCRIPTED_CAMERA', true)
-    SetCamCoord(cam, camPos.x, camPos.y, camPos.z)
-    PointCamAtCoord(cam, lookAt.x, lookAt.y, lookAt.z)
-    SetCamFov(cam, fov or 52.0)
-    return cam
-end
-
-local function destroyCam(cam)
-    if cam and DoesCamExist(cam) then
-        DestroyCam(cam, false)
-    end
-end
-
--- Tabela de animações para postura encolhida / susto / levantar (estilo MRI)
 local COWER = {
-    male = {
-        base = 'amb@code_human_cower@male@base',
-        scared = 'amb@code_human_cower@male@idle_a',
-        exit = 'amb@code_human_cower@male@exit',
-    },
-    female = {
-        base = 'amb@code_human_cower@female@base',
-        scared = 'amb@code_human_cower@female@idle_a',
-        exit = 'amb@code_human_cower@female@exit',
-    },
+    male = { base = 'amb@code_human_cower@male@base', scared = 'amb@code_human_cower@male@idle_a', exit = 'amb@code_human_cower@male@exit' },
+    female = { base = 'amb@code_human_cower@female@base', scared = 'amb@code_human_cower@female@idle_a', exit = 'amb@code_human_cower@female@exit' },
 }
 
-local function getCowerSet(ped)
+local PLAYER_DEPTH = 0.55
+
+local function cowerSet(ped)
     return IsPedMale(ped) and COWER.male or COWER.female
 end
 
-local function playCower(ped)
-    local set = getCowerSet(ped)
-    if requestAnimDict(set.base, 4000) then
+local function cower(ped)
+    local set = cowerSet(ped)
+    if lib.requestAnimDict(set.base, 5000) then
         TaskPlayAnim(ped, set.base, 'base', 8.0, -8.0, -1, 1, 0.0, false, false, false)
     end
 end
 
-local function playFlinch(ped)
-    local set = getCowerSet(ped)
-    if requestAnimDict(set.scared, 4000) then
-        TaskPlayAnim(ped, set.scared, 'idle_a', 8.0, -8.0, -1, 1, 0.0, false, false, false)
+local function flinch(ped)
+    local set = cowerSet(ped)
+    if lib.requestAnimDict(set.scared, 5000) then
+        local clips = { 'idle_a', 'idle_b', 'idle_c' }
+        TaskPlayAnim(ped, set.scared, clips[math.random(#clips)], 8.0, -8.0, -1, 1, 0.0, false, false, false)
     end
 end
 
-local function standAndWalk(ped, destination, heading)
-    local set = getCowerSet(ped)
-    requestAnimDict(set.exit, 4000)
+local function standAndWalk(ped, legs, heading)
+    local set = cowerSet(ped)
+    lib.requestAnimDict(set.exit, 5000)
     FreezeEntityPosition(ped, false)
     local seq = OpenSequenceTask()
     TaskPlayAnim(0, set.exit, 'exit', 4.0, -4.0, -1, 0, 0.0, false, false, false)
-    TaskGoStraightToCoord(0, destination.x, destination.y, destination.z, 1.0, 7000, heading or 0.0, 0.4)
+    for i, p in ipairs(legs) do
+        TaskGoStraightToCoord(0, p.x, p.y, p.z, 1.0, -1, i == #legs and heading or 0.0, 0.3)
+    end
     CloseSequenceTask(seq)
     TaskPerformSequence(ped, seq)
     ClearSequenceTask(seq)
 end
 
+local function headingTo(from, to)
+    return GetHeadingFromVector_2d(to.x - from.x, to.y - from.y)
+end
+
+local function forwardOf(h)
+    local r = math.rad(h)
+    return -math.sin(r), math.cos(r)
+end
+
+local function rightOf(h)
+    local r = math.rad(h)
+    return math.cos(r), math.sin(r)
+end
+
+local function groundAt(p)
+    for _ = 1, 30 do
+        local found, z = GetGroundZFor_3dCoord(p.x, p.y, p.z + 2.0, false)
+        if found then return z end
+        Wait(0)
+    end
+    return p.z - 1.0
+end
+
+local function holdDoorsClosed(box, ccfg)
+    if not lib.requestAnimDict(ccfg.openDict, 5000) then
+        dbg('[container] animacao das portas nao carregou')
+        return nil
+    end
+    local pos = GetEntityCoords(box)
+    local rot = GetEntityRotation(box, 2)
+    local scene = CreateSynchronizedScene(pos.x, pos.y, pos.z, rot.x, rot.y, rot.z, 2)
+    PlaySynchronizedEntityAnim(box, scene, ccfg.openAnim, ccfg.openDict, 1000.0, -8.0, 0, 1000.0)
+    SetSynchronizedSceneHoldLastFrame(scene, true)
+    SetSynchronizedScenePhase(scene, 0.0)
+    SetSynchronizedSceneRate(scene, 0.0)
+    ForceEntityAiAndAnimationUpdate(box)
+    return scene
+end
+
+local function drawSeams(s)
+    for i = -1, 1 do
+        local from = s.inside(i * 0.35, -0.4, 1.0 + i * 0.25)
+        local to = s.inside(i * 0.2, 1.8, 0.2)
+        local d = to - from
+        DrawSpotLight(from.x, from.y, from.z, d.x, d.y, d.z, 255, 214, 160, 6.0, 9.0, 0.0, 3.5, 30.0)
+    end
+end
+
 function W2F.Arrival.Container(ctx, spawnCoords)
     local cfg = (Config.Arrival or {}).container or {}
+    local ccfg = {
+        model = GetHashKey(cfg.model or 'tr_prop_tr_container_01a'),
+        collisionModel = GetHashKey(cfg.collisionProp or 'prop_ld_container'),
+        openDict = cfg.openDict or 'anim@scripted@player@mission@tunf_train_ig1_container_p1@male@',
+        openAnim = cfg.openAnim or 'action_container',
+        openPhase = cfg.openPhase or 0.66,
+        doorAxis = cfg.doorAxis or -1,
+        doorOpenMs = cfg.doorOpenMs or 1200,
+        floor = cfg.floor or 0.12,
+        gap = cfg.gap or 1.4,
+        darkness = cfg.darkness or 'int_extlight_none_dark',
+        migrants = cfg.migrants or { 'a_m_m_mexlabor_01', 'a_m_y_mexthug_01', 'a_m_m_soucent_01' },
+        beats = cfg.beats or { dark = 2400, impact = 1800, open = 2400, out = 4000 },
+        sounds = cfg.sounds or {
+            banks = {
+                script = { 'DLC_HEI4/DLC_HEI4_Submarine', 'Container_Lifter', 'DLC_APARTMENT/APT_Yacht_01' },
+                ambient = { 'Crane', 'Crane_Impact_Sweeteners', 'Crane_Stress', 'CREAK_V1' },
+            },
+            creakLoop = { 'Creaking_Loop', 'DLC_H4_Submarine_Crush_Depth_Sounds' },
+            creaks = { { 'CREAK_01', 'DOCKS_HEIST_SETUP_SOUNDS' }, { 'Strain', 'CRANE_SOUNDS' } },
+            horn = { 'HORN', 'DLC_Apt_Yacht_Ambient_Soundset' },
+            impact = {
+                { 'Container_Impact_Land', 'CRANE_SOUNDS' },
+                { 'Container_Land', 'CONTAINER_LIFTER_SOUNDS' },
+            },
+            door = { 'container_door', 'dlc_prison_break_heist_sounds' },
+            flash = { 'SCREEN_FLASH', 'CELEBRATION_SOUNDSET' },
+            gulls = { 'Seagulls', 'JEWEL_HEIST_SOUNDS' },
+        },
+    }
 
-    local containerModel = cfg.model          or 'tr_prop_tr_container_01a'
-    local collisionModel = cfg.collisionProp  or 'prop_ld_container'
-    local containerCoords = cfg.spawnCoords   or vec4(520.39, -2935.94, 6.04, 180.0)
-    local openDict        = cfg.openDict       or 'anim@scripted@player@mission@tunf_train_ig1_container_p1@male@'
-    local openAnim        = cfg.openAnim       or 'action_container'
-    local openPhase       = cfg.openPhase      or 0.66
-
-    dbg('[container] iniciando historia estilo MRI em %s %s %s', containerCoords.x, containerCoords.y, containerCoords.z)
+    local destination = spawnCoords or cfg.spawnCoords or vec4(520.39, -2935.94, 6.04, 180.0)
+    local spawn = {
+        x = destination.x,
+        y = destination.y,
+        z = destination.z,
+        heading = destination.w or 180.0,
+    }
 
     local function getSub(key, fallback)
         if type(locale) == 'function' then
@@ -125,24 +164,15 @@ function W2F.Arrival.Container(ctx, spawnCoords)
 
     CreateThread(function()
         local ped = PlayerPedId()
-
-        -- Controle de estado e entidades
         local skipped = false
-        local containerProp = nil
-        local collisionProp = nil
-        local doorScene = nil
-        local npc1 = nil
-        local npc2 = nil
-        local cam1 = nil
-        local cam2 = nil
-        local cam3 = nil
-        local streamHandle = nil
-        local activeSoundIds = {} -- Rastreia todos os soundIds para cleanup sem vazamento
+        local loops = {}
+        local activeCams = {}
+        local leftovers = {}
 
         local function doSkip()
             if skipped then return end
             skipped = true
-            dbg('[container] jogador pulou a cinematica')
+            dbg('[container] pulando cena a pedido do jogador')
         end
 
         RegisterNUICallback('skipArrivalStory', function(data, cb)
@@ -150,443 +180,418 @@ function W2F.Arrival.Container(ctx, spawnCoords)
             if cb then cb('ok') end
         end)
 
-        -- Exibe overlay de loading ANTES de qualquer load pesado (elimina tela preta muda)
-        W2F.SendNui('showStoryLoading', { text = 'Preparando embarque...' })
+        -- Audio design
+        local sfx = ccfg.sounds
+        local function loadBanks()
+            if sfx and sfx.banks then
+                for _, name in ipairs(sfx.banks.script or {}) do
+                    for _ = 1, 20 do
+                        if RequestScriptAudioBank(name, false) then break end
+                        Wait(0)
+                    end
+                end
+                for _, name in ipairs(sfx.banks.ambient or {}) do
+                    for _ = 1, 20 do
+                        if RequestAmbientAudioBank(name, false) then break end
+                        Wait(0)
+                    end
+                end
+            end
+        end
 
-        -- 1. Carrega bancos de áudio do GTA
-        pcall(function()
-            RequestScriptAudioBank('DLC_HEI4/DLC_HEI4_Submarine', false)
-            RequestScriptAudioBank('Container_Lifter', false)
-            RequestScriptAudioBank('DLC_APARTMENT/APT_Yacht_01', false)
-            RequestAmbientAudioBank('Crane', false)
-            RequestAmbientAudioBank('Crane_Impact_Sweeteners', false)
+        local function soundAt(def, p)
+            if not def or not def[1] then return -1 end
+            local id = GetSoundId()
+            PlaySoundFromCoord(id, def[1], p.x, p.y, p.z, def[2], false, 0, false)
+            return id
+        end
+
+        local function oneShot(def, p)
+            local id = soundAt(def, p)
+            if id ~= -1 then
+                ReleaseSoundId(id)
+            end
+        end
+
+        local function startLoop(key, def, p)
+            loops[key] = soundAt(def, p)
+        end
+
+        local function stopLoop(key)
+            local id = loops[key]
+            if not id or id == -1 then return end
+            StopSound(id)
+            ReleaseSoundId(id)
+            loops[key] = nil
+        end
+
+        local function stopAllLoops()
+            for key in pairs(loops) do stopLoop(key) end
+        end
+
+        local function releaseBanks()
+            if sfx and sfx.banks then
+                for _, name in ipairs(sfx.banks.script or {}) do
+                    ReleaseNamedScriptAudioBank(name)
+                end
+                ReleaseAmbientAudioBank()
+            end
+        end
+
+        local function newCam(camFov)
+            local cam = CreateCam('DEFAULT_SCRIPTED_CAMERA', true)
+            SetCamFov(cam, camFov or 50.0)
+            activeCams[#activeCams + 1] = cam
+            return cam
+        end
+
+        local function cutTo(cam)
+            for i = 1, #activeCams do
+                if activeCams[i] ~= cam then SetCamActive(activeCams[i], false) end
+            end
+            SetCamActive(cam, true)
+            RenderScriptCams(true, false, 0, true, true)
+        end
+
+        local function destroyCams()
+            for i = 1, #activeCams do
+                if DoesCamExist(activeCams[i]) then DestroyCam(activeCams[i], false) end
+            end
+            activeCams = {}
+        end
+
+        local function run(ms, onFrame)
+            local startAt = GetGameTimer()
+            while true do
+                if skipped then return false end
+                local t = (GetGameTimer() - startAt) / ms
+                if t >= 1.0 then return true end
+                if onFrame then onFrame(t) end
+                Wait(0)
+            end
+        end
+
+        -- Monitor de tecla Skip in-game (Space ou Enter)
+        CreateThread(function()
+            while not skipped do
+                if IsDisabledControlJustPressed(0, 22) or IsDisabledControlJustPressed(0, 201) or IsControlJustPressed(0, 191) or IsControlJustPressed(0, 201) then
+                    doSkip()
+                    break
+                end
+                Wait(0)
+            end
         end)
 
-        -- 2. Stream da área do porto
-        if W2F.Streaming and W2F.Streaming.Acquire then
-            streamHandle = W2F.Streaming.Acquire(vec3(containerCoords.x, containerCoords.y, containerCoords.z), {
-                radius = 120.0,
-                keepThread = true,
-                focus = true,
-                scene = false,
-            })
+        loadBanks()
+
+        -- STAGING (Geometria 1:1 MRI)
+        local model = ccfg.model
+        if not lib.requestModel(model, 10000) then
+            dbg('[container] modelo do conteiner invalido')
+            return
         end
+        local dmin, dmax = GetModelDimensions(model)
+        local axis = ccfg.doorAxis >= 0 and 1 or -1
+        local endY = axis > 0 and dmax.y or dmin.y
+        local length = dmax.y - dmin.y
+        local width = dmax.x - dmin.x
 
-        SetEntityVisible(ped, false, false)
-        FreezeEntityPosition(ped, true)
-        SetEntityCoords(ped, containerCoords.x, containerCoords.y, containerCoords.z + 1.0, false, false, false, false)
+        local fx, fy = forwardOf(spawn.heading)
+        local door = vector3(spawn.x - fx * ccfg.gap, spawn.y - fy * ccfg.gap, spawn.z)
 
-        -- 3. Carrega modelos dos props
-        local containerHash = GetHashKey(containerModel)
-        local containerLoaded = requestModelSafe(containerHash, 12000)
-        local collisionHash = GetHashKey(collisionModel)
-        local collisionLoaded = requestModelSafe(collisionHash, 8000)
-
-        if containerLoaded then
-            containerProp = CreateObjectNoOffset(containerHash, containerCoords.x, containerCoords.y, containerCoords.z, false, false, false)
-            SetEntityHeading(containerProp, containerCoords.w)
-            SetEntityVisible(containerProp, true, false)
-            FreezeEntityPosition(containerProp, true)
-            SetModelAsNoLongerNeeded(containerHash)
-        end
-
-        if collisionLoaded then
-            collisionProp = CreateObjectNoOffset(collisionHash, containerCoords.x, containerCoords.y, containerCoords.z, false, false, false)
-            SetEntityHeading(collisionProp, containerCoords.w)
-            SetEntityVisible(collisionProp, false, false)
-            FreezeEntityPosition(collisionProp, true)
-            SetModelAsNoLongerNeeded(collisionHash)
-        end
-
-        -- Trava as portas do contêiner fechadas com Cena Sincronizada (estilo MRI)
-        local animDictOk = requestAnimDict(openDict, 5000)
-        if containerProp and animDictOk then
-            local p = GetEntityCoords(containerProp)
-            local r = GetEntityRotation(containerProp, 2)
-            doorScene = CreateSynchronizedScene(p.x, p.y, p.z, r.x, r.y, r.z, 2)
-            PlaySynchronizedEntityAnim(containerProp, doorScene, openAnim, openDict, 1000.0, -8.0, 0, 1000.0)
-            SetSynchronizedSceneHoldLastFrame(doorScene, true)
-            SetSynchronizedScenePhase(doorScene, 0.0) -- 0.0 = porta 100% trancada
-            SetSynchronizedSceneRate(doorScene, 0.0)
-            ForceEntityAiAndAnimationUpdate(containerProp)
-        end
-
-        -- 4. Companheiros clandestinos
-        local npc1Model = GetHashKey('a_m_m_mexlabor_01')
-        local npc2Model = GetHashKey('a_m_y_mexthug_01')
-        requestModelSafe(npc1Model, 6000)
-        requestModelSafe(npc2Model, 6000)
-
-        -- Posições relativas — geometria do tr_prop_tr_container_01a (20ft ISO):
-        --   CreateObjectNoOffset: base do prop em containerCoords.z
-        --   Chão interno: Z = 0.0 local (o prop tem ~2.6m de altura, chão fica em Z=0 local)
-        --   Fundo sólido: +Y ~2.95, Portas: -Y ~2.95, Laterais: ±0.85
-        --
-        -- DIAGNÓSTICO (test4): Z=-1.15 colocava peds no asfalto externo (abaixo do prop)
-        -- FIX: Z=0.0 local = chão interno do container
-        local playerInside = containerProp and GetOffsetFromEntityInWorldCoords(containerProp, 0.0, 2.0, 0.0)
-            or vec3(containerCoords.x, containerCoords.y + 2.0, containerCoords.z)
-        local npc1Pos = containerProp and GetOffsetFromEntityInWorldCoords(containerProp, -0.75, 1.7, 0.0)
-            or vec3(containerCoords.x - 0.75, containerCoords.y + 1.7, containerCoords.z)
-        local npc2Pos = containerProp and GetOffsetFromEntityInWorldCoords(containerProp, 0.75, 1.7, 0.0)
-            or vec3(containerCoords.x + 0.75, containerCoords.y + 1.7, containerCoords.z)
-
-        local faceDoorsHeading = (containerCoords.w + 180.0) % 360.0
-
-        -- Posiciona o jogador sentado no chão encolhido de medo
-        SetEntityCoords(ped, playerInside.x, playerInside.y, playerInside.z, false, false, false, false)
-        SetEntityHeading(ped, faceDoorsHeading)
-        SetEntityVisible(ped, true, false)
-        FreezeEntityPosition(ped, true)
-        SetEntityInvincible(ped, true)
-        playCower(ped)
-
-        -- Cria NPC 1
-        if HasModelLoaded(npc1Model) then
-            npc1 = CreatePed(4, npc1Model, npc1Pos.x, npc1Pos.y, npc1Pos.z, (faceDoorsHeading - 20.0) % 360.0, false, false)
-            if DoesEntityExist(npc1) then
-                SetEntityInvincible(npc1, true)
-                SetBlockingOfNonTemporaryEvents(npc1, true)
-                FreezeEntityPosition(npc1, true)
-                playCower(npc1)
-            end
-            SetModelAsNoLongerNeeded(npc1Model)
-        end
-
-        -- Cria NPC 2
-        if HasModelLoaded(npc2Model) then
-            npc2 = CreatePed(4, npc2Model, npc2Pos.x, npc2Pos.y, npc2Pos.z, (faceDoorsHeading + 20.0) % 360.0, false, false)
-            if DoesEntityExist(npc2) then
-                SetEntityInvincible(npc2, true)
-                SetBlockingOfNonTemporaryEvents(npc2, true)
-                FreezeEntityPosition(npc2, true)
-                playCower(npc2)
-            end
-            SetModelAsNoLongerNeeded(npc2Model)
-        end
-
-        -- 5. Câmera INTERIOR 1
-        -- FIX (test4): Z=-0.4/-1.0 estava ABAIXO do prop (no asfalto externo)
-        -- Com CreateObjectNoOffset, Z=0 local = base do prop = chão externo
-        -- Interior: Z=0.8 = ~altura dos olhos dentro do container, Y=-2.3 = perto das portas
-        -- Mira em (0, 2.0, 0.3) = onde os peds estão agachados
-        local cam1Pos = containerProp and GetOffsetFromEntityInWorldCoords(containerProp, 0.0, -2.3, 0.8)
-            or vec3(containerCoords.x, containerCoords.y - 2.3, containerCoords.z + 0.8)
-        local cam1Target = containerProp and GetOffsetFromEntityInWorldCoords(containerProp, 0.0, 2.0, 0.3)
-            or vec3(containerCoords.x, containerCoords.y + 2.0, containerCoords.z + 0.3)
-        cam1 = createLookAtCam(cam1Pos, cam1Target, 54.0)
-        SetCamActive(cam1, true)
-        RenderScriptCams(true, false, 0, true, false)
-
-        -- Ativa as barras de cinema no NUI
-        W2F.SendNui('showCinemaBars', {})
-
-        -- Iluminação escura de interior — força reduzida para não matar a câmera
-        SetTimecycleModifier('int_extlight_none_dark')
-        SetTimecycleModifierStrength(0.65)
-
-        -- Fecha overlay de loading e faz fade in — agora a cena está pronta
-        W2F.SendNui('hideStoryLoading', {})
-        DoScreenFadeIn(800)
-        while not IsScreenFadedIn() do Wait(0) end
-
-        -- Som de motor diesel de navio ao fundo (loop) + onda batendo no casco
-        pcall(function()
-            local sndCreaking = GetSoundId()
-            PlaySoundFromCoord(sndCreaking, 'Creaking_Loop', playerInside.x, playerInside.y, playerInside.z, 'DLC_H4_Submarine_Crush_Depth_Sounds', false, 25.0, false)
-            table.insert(activeSoundIds, sndCreaking)
-            local sndHorn = GetSoundId()
-            PlaySoundFromCoord(sndHorn, 'HORN', containerCoords.x, containerCoords.y - 90.0, containerCoords.z + 10.0, 'DLC_Apt_Yacht_Ambient_Soundset', false, 90.0, false)
-            table.insert(activeSoundIds, sndHorn)
-        end)
-
-        -- SÓ AGORA mostra o botão de skip (após fade in completo)
-        W2F.SendNui('showArrivalSkip', {})
-
-        local beats = cfg.beats or { dark = 2000, impact = 1600, open = 2000, out = 3500 }
-
-        -- Legenda 1: "Vinte e três dias no escuro."
-        W2F.SendNui('showArrivalSubtitle', { text = subtitles[1], durationMs = beats.dark })
-
-        -- ATO 1: Desenha feixes de luz dourada pelas frestas metálicas (DrawSpotLight)
-        -- Pré-calcula os feixes uma vez (contêiner estático = sem GetOffset por frame)
-        local beamsAto1 = {}
-        if containerProp and DoesEntityExist(containerProp) then
-            for i = -1, 1 do
-                local beamFrom = GetOffsetFromEntityInWorldCoords(containerProp, i * 0.35, -2.8, 1.0 + i * 0.25)
-                local beamTo   = GetOffsetFromEntityInWorldCoords(containerProp, i * 0.2, 1.8, 0.2)
-                local dir = beamTo - beamFrom
-                beamsAto1[#beamsAto1 + 1] = { from = beamFrom, dir = dir }
-            end
-        end
-        local timerEnd = GetGameTimer() + beats.dark
-        while GetGameTimer() < timerEnd and not skipped do
-            for i = 1, #beamsAto1 do
-                local b = beamsAto1[i]
-                DrawSpotLight(b.from.x, b.from.y, b.from.z, b.dir.x, b.dir.y, b.dir.z, 255, 214, 160, 6.0, 9.0, 0.0, 3.5, 30.0)
-            end
-            if IsControlJustReleased(0, 191) or IsControlJustReleased(0, 201) then doSkip() break end
+        -- Stream da área
+        SetFocusPosAndVel(door.x, door.y, door.z, 0.0, 0.0, 0.0)
+        NewLoadSceneStartSphere(door.x, door.y, door.z, 120.0, 0)
+        local deadline = GetGameTimer() + 8000
+        while not IsNewLoadSceneLoaded() and GetGameTimer() < deadline do
+            RequestCollisionAtCoord(door.x, door.y, door.z)
             Wait(0)
         end
+        NewLoadSceneStop()
 
-        -- ATO 2: O TRANCO DO GUINDASTE (Solavanco violento e impacto de aço)
-        if not skipped then
-            -- Som de impacto pesado
-            pcall(function()
-                PlaySoundFromCoord(-1, 'Container_Impact_Land', playerInside.x, playerInside.y, playerInside.z, 'CRANE_SOUNDS', false, 40.0, false)
-                PlaySoundFromCoord(-1, 'Container_Land', playerInside.x, playerInside.y, playerInside.z, 'CONTAINER_LIFTER_SOUNDS', false, 40.0, false)
-            end)
+        local ground = groundAt(door)
 
-            -- Tremor violento de câmera
-            ShakeCam(cam1, 'LARGE_EXPLOSION_SHAKE', 0.22)
+        local heading = axis > 0 and spawn.heading or (spawn.heading + 180.0) % 360.0
+        local ex, ey = forwardOf(heading)
+        local origin = vector3(door.x - ex * endY, door.y - ey * endY, ground - dmin.z)
 
-            -- Personagens tomam sobressalto de pânico
-            playFlinch(ped)
-            if npc1 and DoesEntityExist(npc1) then playFlinch(npc1) end
-            if npc2 and DoesEntityExist(npc2) then playFlinch(npc2) end
+        if not lib.requestModel(ccfg.collisionModel, 10000) then
+            dbg('[container] modelo de colisao invalido')
+            return
+        end
 
-            -- Legenda 2: "Ele prometeu trabalho. Cobrou adiantado."
-            W2F.SendNui('showArrivalSubtitle', { text = subtitles[2], durationMs = beats.impact })
+        local box = CreateObject(model, origin.x, origin.y, origin.z, false, false, false)
+        local shell = CreateObject(ccfg.collisionModel, origin.x, origin.y, origin.z, false, false, false)
+        leftovers[#leftovers + 1] = box
+        leftovers[#leftovers + 1] = shell
+        SetModelAsNoLongerNeeded(model)
+        SetModelAsNoLongerNeeded(ccfg.collisionModel)
+        SetEntityHeading(box, heading)
+        SetEntityHeading(shell, heading)
+        SetEntityVisible(shell, false, false)
 
-            timerEnd = GetGameTimer() + beats.impact
-            local cachedBeams = {}
-            if containerProp and DoesEntityExist(containerProp) then
-                for i = -1, 1 do
-                    local beamFrom = GetOffsetFromEntityInWorldCoords(containerProp, i * 0.35, -2.8, 1.0 + i * 0.25)
-                    local beamTo = GetOffsetFromEntityInWorldCoords(containerProp, i * 0.2, 1.8, 0.2)
-                    local dir = beamTo - beamFrom
-                    cachedBeams[#cachedBeams + 1] = { from = beamFrom, dir = dir }
-                end
+        local dz = ground - (GetEntityCoords(box).z + dmin.z)
+        for _, e in ipairs({ box, shell }) do
+            local p = GetEntityCoords(e)
+            SetEntityCoordsNoOffset(e, p.x, p.y, p.z + dz, false, false, false)
+            FreezeEntityPosition(e, true)
+        end
+
+        local floorZ = dmin.z + ccfg.floor
+        local function inside(x, depth, z)
+            return GetOffsetFromEntityInWorldCoords(box, x, endY - axis * depth, floorZ + (z or 0.0))
+        end
+
+        -- Raycast do piso real
+        local probeFrom = inside(0.0, length * 0.5, 1.2)
+        local probeTo = inside(0.0, length * 0.5, -2.5)
+        local floorHit
+        for _ = 1, 30 do
+            local ray = StartExpensiveSynchronousShapeTestLosProbe(probeFrom.x, probeFrom.y, probeFrom.z, probeTo.x, probeTo.y, probeTo.z, 17, 0, 7)
+            local _, hit, at = GetShapeTestResult(ray)
+            if hit == 1 then
+                floorHit = at.z
+                break
             end
+            Wait(0)
+        end
+        if floorHit then
+            floorZ = floorZ + (floorHit - inside(0.0, length * 0.5, 0.0).z)
+            dbg('[container] piso detectado a %.2f m da base', floorZ - dmin.z)
+        end
+
+        local doorScene = holdDoorsClosed(box, ccfg)
+
+        local spot = inside(0.25, length * PLAYER_DEPTH)
+        SetEntityCoordsNoOffset(ped, spot.x, spot.y, spot.z + 1.0, false, false, false)
+        SetEntityHeading(ped, spawn.heading)
+        FreezeEntityPosition(ped, true)
+        SetEntityInvincible(ped, true)
+        cower(ped)
+
+        local center = inside(0.0, length * 0.5, 0.0)
+        local migrants = {}
+        local slots = {
+            { x = -(width / 2 - 0.5), depth = length * 0.72 },
+            { x = width / 2 - 0.5, depth = length * 0.84 },
+        }
+        for i, slot in ipairs(slots) do
+            local mModel = ccfg.migrants[(i - 1) % #ccfg.migrants + 1]
+            local mHash = type(mModel) == 'number' and mModel or GetHashKey(mModel)
+            if lib.requestModel(mHash, 8000) then
+                local p = inside(slot.x, slot.depth, 0.0)
+                local npc = CreatePed(26, mHash, p.x, p.y, p.z, 0.0, false, false)
+                leftovers[#leftovers + 1] = npc
+                SetModelAsNoLongerNeeded(mHash)
+                SetEntityCoordsNoOffset(npc, p.x, p.y, p.z + 1.0, false, false, false)
+                SetEntityHeading(npc, headingTo(p, center))
+                SetBlockingOfNonTemporaryEvents(npc, true)
+                SetEntityInvincible(npc, true)
+                FreezeEntityPosition(npc, true)
+                cower(npc)
+                migrants[#migrants + 1] = npc
+            end
+        end
+
+        local s = {
+            box = box, doorScene = doorScene, migrants = migrants, ped = ped,
+            heading = heading, axis = axis, inside = inside, length = length,
+            width = width, endY = endY, floorZ = floorZ,
+            doorCenter = inside(0.0, 0.0, 1.2), shell = shell,
+        }
+
+        -- SCENE (CENAS E BEATS 1:1 MRI)
+        local beats = ccfg.beats
+
+        -- 1. Dark & Creaks
+        SetTimecycleModifier(ccfg.darkness)
+        SetTimecycleModifierStrength(1.0)
+        local farAway = vector3(center.x + fx * 90.0, center.y + fy * 90.0, center.z + 10.0)
+        startLoop('creak', sfx.creakLoop, center)
+        local nextCreak = GetGameTimer() + 900
+        local hornAt = GetGameTimer() + 1400
+
+        local function creaks()
+            local now = GetGameTimer()
+            if now >= nextCreak then
+                if sfx.creaks and #sfx.creaks > 0 then
+                    oneShot(sfx.creaks[math.random(#sfx.creaks)], s.inside((math.random() - 0.5) * s.width, math.random() * s.length, 2.0))
+                end
+                nextCreak = now + math.random(1600, 3200)
+            end
+            if hornAt and now >= hornAt then
+                hornAt = nil
+                oneShot(sfx.horn, farAway)
+            end
+        end
+
+        local head = s.inside(0.25, s.length * PLAYER_DEPTH, 0.75)
+        local camA = newCam(36.0)
+        local fromA = s.inside(0.9, s.length * PLAYER_DEPTH - 1.1, 0.7)
+        SetCamCoord(camA, fromA.x, fromA.y, fromA.z)
+        PointCamAtCoord(camA, head.x, head.y, head.z)
+        cutTo(camA)
+
+        -- Revela cena (NUI e FadeIn)
+        W2F.SendNui('showCinemaBars', {})
+        W2F.SendNui('showArrivalSkip', {})
+        DoScreenFadeIn(700)
+        W2F.SendNui('showArrivalSubtitle', { text = subtitles[1], durationMs = beats.dark - 600 })
+
+        local toA = fromA + (head - fromA) * 0.25
+        local okScene = run(beats.dark, function(t)
+            local k = t * t * (3 - 2 * t)
+            SetCamCoord(camA, fromA.x + (toA.x - fromA.x) * k, fromA.y + (toA.y - fromA.y) * k, fromA.z + (toA.z - fromA.z) * k)
+            drawSeams(s)
+            creaks()
+        end)
+
+        -- 2. Impacto do guindaste
+        if okScene and not skipped then
+            for _, def in ipairs(sfx.impact or {}) do oneShot(def, center) end
+            ShakeCam(camA, 'LARGE_EXPLOSION_SHAKE', 0.22)
+            for _, npc in ipairs(s.migrants) do flinch(npc) end
+            flinch(ped)
+            W2F.SendNui('showArrivalSubtitle', { text = subtitles[2], durationMs = beats.impact - 400 })
+
             local settled = false
-            while GetGameTimer() < timerEnd and not skipped do
-                if not settled and (GetGameTimer() > timerEnd - 1000) then
+            okScene = run(beats.impact, function(t)
+                if not settled and t > 0.35 then
                     settled = true
-                    StopCamShaking(cam1, false)
-                    playCower(ped)
-                    if npc1 and DoesEntityExist(npc1) then playCower(npc1) end
-                    if npc2 and DoesEntityExist(npc2) then playCower(npc2) end
+                    StopCamShaking(camA, false)
+                    for _, npc in ipairs(s.migrants) do cower(npc) end
+                    cower(ped)
                 end
-                for i = 1, #cachedBeams do
-                    local b = cachedBeams[i]
-                    DrawSpotLight(b.from.x, b.from.y, b.from.z, b.dir.x, b.dir.y, b.dir.z, 255, 214, 160, 6.0, 9.0, 0.0, 3.5, 30.0)
-                end
-                if IsControlJustReleased(0, 191) or IsControlJustReleased(0, 201) then doSkip() break end
-                Wait(0)
-            end
+                drawSeams(s)
+                creaks()
+            end)
         end
 
-        -- ATO 3: ABERTURA DAS PORTAS & CLARÃO SOLAR
-        if not skipped then
-            -- 3 batidas secas e rápidas do coiote por fora
-            pcall(function() PlaySoundFrontend(-1, 'BOSS_KNOCK', 'GTAO_EXEC_SECUROSERV_NETWORK_SOUNDSET', false) end)
-            Wait(180)
-            pcall(function() PlaySoundFrontend(-1, 'BOSS_KNOCK', 'GTAO_EXEC_SECUROSERV_NETWORK_SOUNDSET', false) end)
-            Wait(180)
-            pcall(function() PlaySoundFrontend(-1, 'BOSS_KNOCK', 'GTAO_EXEC_SECUROSERV_NETWORK_SOUNDSET', false) end)
-            Wait(180)
-
-            -- Trava estala e as portas abrem instantaneamente na fase 0.66
-            pcall(function()
-                PlaySoundFrontend(-1, 'container_door', 'dlc_prison_break_heist_sounds', false)
-            end)
-
-            if doorScene then
-                SetSynchronizedScenePhase(doorScene, openPhase)
-                SetSynchronizedSceneRate(doorScene, 1.0)
-                ForceEntityAiAndAnimationUpdate(containerProp)
-            end
-
-            -- Câmera exterior 2 (Filmando de frente as portas se abrindo para fora em -Y)
-            local cam2Pos = containerProp and GetOffsetFromEntityInWorldCoords(containerProp, 0.0, -7.2, 1.45)
-                or vec3(containerCoords.x, containerCoords.y - 7.2, containerCoords.z + 1.45)
-            local cam2Look = containerProp and GetOffsetFromEntityInWorldCoords(containerProp, 0.0, -0.5, 1.1)
-                or vec3(containerCoords.x, containerCoords.y - 0.5, containerCoords.z + 1.1)
-            cam2 = createLookAtCam(cam2Pos, cam2Look, 52.0)
-
-            SetCamActiveWithInterp(cam2, cam1, 550, 1, 1)
-            Wait(600)
-            destroyCam(cam1)
-            SetCamActive(cam2, true)
-
-            -- Troca suave de colisão para liberar a passagem das portas
-            if containerProp then SetEntityCollision(containerProp, false, false) end
-            if collisionProp then
-                SetEntityCollision(collisionProp, true, true)
-                SetEntityVisible(collisionProp, false, false)
-            end
-
-            -- Clarão solar, som de gaivotas e remoção do filtro escuro
-            ClearTimecycleModifier()
+        -- 3. Portas abrem e luz invade
+        if okScene and not skipped then
+            local camB = newCam(cfg.fov or 50.0)
+            local fromB = s.inside(-0.45, s.length * PLAYER_DEPTH + 1.0, 1.4)
+            SetCamCoord(camB, fromB.x, fromB.y, fromB.z)
+            PointCamAtCoord(camB, s.doorCenter.x, s.doorCenter.y, s.doorCenter.z)
+            cutTo(camB)
+            stopLoop('creak')
+            oneShot(sfx.door, s.doorCenter)
+            oneShot(sfx.flash, s.doorCenter)
+            oneShot(sfx.gulls, vector3(s.doorCenter.x + fx * 20.0, s.doorCenter.y + fy * 20.0, s.doorCenter.z + 8.0))
             pcall(function() AnimpostfxPlay('DeathFailNeutralIn', 500, false) end)
-            pcall(function()
-                PlaySoundFrontend(-1, 'Seagulls', 'JEWEL_HEIST_SOUNDS', false)
-                PlaySoundFrontend(-1, 'SCREEN_FLASH', 'CELEBRATION_SOUNDSET', false)
+
+            if s.doorScene then
+                SetSynchronizedScenePhase(s.doorScene, ccfg.openPhase)
+                SetSynchronizedSceneRate(s.doorScene, 1.0)
+                ForceEntityAiAndAnimationUpdate(s.box)
+            end
+
+            local opened = false
+            okScene = run(beats.open, function(t)
+                local k = math.min(1.0, (t * beats.open) / ccfg.doorOpenMs)
+                SetTimecycleModifierStrength(math.max(0.0, 1.0 - k * 1.4))
+                if not opened and k >= 1.0 then
+                    opened = true
+                    ClearTimecycleModifier()
+                    SetEntityCollision(s.box, false, true)
+                    W2F.SendNui('showArrivalSubtitle', { text = subtitles[3], durationMs = beats.open })
+                end
+                if k < 0.5 then drawSeams(s) end
             end)
+        end
 
-            -- Legenda 3: "Bem-vindo a Los Santos."
-            W2F.SendNui('showArrivalSubtitle', { text = subtitles[3], durationMs = beats.open })
+        -- 4. Caminhada para fora em direção ao cais
+        if okScene and not skipped then
+            oneShot(sfx.horn, vector3(farAway.x + fx * 60.0, farAway.y + fy * 60.0, farAway.z))
+            local camC = newCam(cfg.fov or 50.0)
+            SetCamCoord(camC, spawn.x + fx * 3.2, spawn.y + fy * 3.2, spawn.z + 0.6)
+            PointCamAtCoord(camC, s.doorCenter.x, s.doorCenter.y, s.doorCenter.z - 0.3)
+            cutTo(camC)
 
-            -- ATO 4: LEVANTAR-SE DO CHÃO E CAMINHAR PARA O CAIS (standAndWalk via OpenSequenceTask)
-            local exitDist = (cfg.exitOffset and cfg.exitOffset.y) or 5.0
-            local exitCoords = containerProp and GetOffsetFromEntityInWorldCoords(containerProp, 0.0, -exitDist, 0.0)
-                or vec3(containerCoords.x, containerCoords.y - exitDist, containerCoords.z)
+            local doorway = s.inside(0.0, 0.5, 1.0)
+            standAndWalk(ped, { doorway, vector3(spawn.x, spawn.y, spawn.z) }, spawn.heading)
 
-            local okGround, safeZ = GetGroundZFor_3dCoord(exitCoords.x, exitCoords.y, exitCoords.z + 2.0, false)
-            if okGround and safeZ > 1.0 then
-                exitCoords = vec3(exitCoords.x, exitCoords.y, safeZ)
-            end
-
-            local exitHeading = (containerCoords.w + 180.0) % 360.0
-
-            -- Jogador se levanta suavemente do chão e caminha em direção ao pátio do porto
-            standAndWalk(ped, exitCoords, exitHeading)
-
-            -- Companheiros também se levantam com ligeiro delay e saem para direções opostas
-            if npc1 and DoesEntityExist(npc1) then
-                SetTimeout(450, function()
-                    if DoesEntityExist(npc1) then
-                        local npc1Exit = containerProp and GetOffsetFromEntityInWorldCoords(containerProp, -2.8, -exitDist - 2.5, 0.0)
-                            or vec3(exitCoords.x - 2.8, exitCoords.y - 2.5, exitCoords.z)
-                        standAndWalk(npc1, npc1Exit, exitHeading)
-                    end
+            local rx, ry = rightOf(spawn.heading)
+            for i, npc in ipairs(s.migrants) do
+                SetTimeout(900 + i * 700, function()
+                    if not DoesEntityExist(npc) then return end
+                    local off = (i % 2 == 0) and 1.8 or -1.8
+                    local out = vector3(spawn.x + rx * off + fx * 2.0, spawn.y + ry * off + fy * 2.0, spawn.z)
+                    standAndWalk(npc, { doorway, out }, spawn.heading)
                 end)
             end
 
-            if npc2 and DoesEntityExist(npc2) then
-                SetTimeout(800, function()
-                    if DoesEntityExist(npc2) then
-                        local npc2Exit = containerProp and GetOffsetFromEntityInWorldCoords(containerProp, 2.8, -exitDist - 2.5, 0.0)
-                            or vec3(exitCoords.x + 2.8, exitCoords.y - 2.5, exitCoords.z)
-                        standAndWalk(npc2, npc2Exit, exitHeading)
-                    end
-                end)
+            W2F.SendNui('showArrivalSubtitle', { text = subtitles[4], durationMs = beats.out - 600 })
+            run(beats.out, nil)
+
+            ClearPedTasks(ped)
+            if #(GetEntityCoords(ped) - vector3(spawn.x, spawn.y, spawn.z)) > 2.5 then
+                SetEntityCoords(ped, spawn.x, spawn.y, spawn.z, false, false, false, false)
             end
-
-            Wait(1100)
-
-            -- Legenda 4: "Agora você deve."
-            W2F.SendNui('showArrivalSubtitle', { text = subtitles[4], durationMs = beats.out })
-
-            -- ATO 5: CÂMERA SEGUINDO O JOGADOR PELAS COSTAS (AttachCamToEntity)
-            cam3 = CreateCam('DEFAULT_SCRIPTED_CAMERA', true)
-            -- Offset: 2m atrás do ped, 1m acima — câmera do tipo shoulder/terceira pessoa
-            AttachCamToEntity(cam3, ped, 0.0, -2.2, 1.0, true)
-            PointCamAtEntity(cam3, ped, 0.0, 0.0, 0.5, true)
-            SetCamFov(cam3, 55.0)
-            SetCamActiveWithInterp(cam3, cam2, 1200, 1, 1)
-
-            timerEnd = GetGameTimer() + 2200
-            while GetGameTimer() < timerEnd and not skipped do
-                if IsControlJustReleased(0, 191) or IsControlJustReleased(0, 201) then doSkip() break end
-                Wait(0)
-            end
-
-            DetachCam(cam3)
-            destroyCam(cam2)
-            SetCamActive(cam3, true)
+            SetEntityHeading(ped, spawn.heading)
         end
 
-        -- =========================================================================
-        -- FINALIZAÇÃO / CLEANUP / TRANSIÇÃO PARA GAMEPLAY
-        -- =========================================================================
-        if skipped then
-            DoScreenFadeOut(300)
-            while not IsScreenFadedOut() do Wait(0) end
-        end
-
-        -- Oculta UI de cinema e restaura efeitos
+        -- CLEANUP (Restauro total de estado)
+        ClearTimecycleModifier()
+        StopGameplayCamShaking(true)
+        stopAllLoops()
+        releaseBanks()
         W2F.SendNui('hideArrivalSubtitle', {})
         W2F.SendNui('hideArrivalSkip', {})
         W2F.SendNui('hideCinemaBars', {})
-        W2F.SendNui('hideStoryLoading', {}) -- garante que overlay de load some se houve skip precoce
-        ClearTimecycleModifier()
         pcall(function() AnimpostfxStopAll() end)
 
-        -- Para TODOS os sons rastreados explicitamente antes de liberar o banco
-        pcall(function()
-            for _, sId in ipairs(activeSoundIds) do
-                if HasSoundFinished(sId) == false then
-                    StopSound(sId)
+        if skipped then
+            DoScreenFadeOut(250)
+            while not IsScreenFadedOut() do Wait(0) end
+            ClearPedTasksImmediately(ped)
+            SetEntityCoords(ped, spawn.x, spawn.y, spawn.z, false, false, false, false)
+            SetEntityHeading(ped, spawn.heading)
+        end
+
+        SetGameplayCamRelativeHeading(0.0)
+        SetGameplayCamRelativePitch(0.0, 1.0)
+        RenderScriptCams(false, not skipped, skipped and 0 or (cfg.blendOutMs or 1200), true, true)
+        destroyCams()
+        ClearFocus()
+
+        -- Libera peds para vagarem antes de serem excluídos
+        SetTimeout(5000, function()
+            for _, npc in ipairs(s.migrants or {}) do
+                if DoesEntityExist(npc) then
+                    FreezeEntityPosition(npc, false)
+                    TaskWanderStandard(npc, 10.0, 10)
                 end
-                ReleaseSoundId(sId)
             end
         end)
-        activeSoundIds = {}
 
-        -- Libera bancos de áudio (somente após StopSound de todos os soundIds)
-        pcall(function()
-            ReleaseNamedScriptAudioBank('DLC_HEI4/DLC_HEI4_Submarine')
-            ReleaseNamedScriptAudioBank('Container_Lifter')
-            ReleaseNamedScriptAudioBank('DLC_APARTMENT/APT_Yacht_01')
-            ReleaseAmbientAudioBank()
-        end)
-
-        -- Destrói câmeras e restaura a câmera de jogo
-        destroyCam(cam1)
-        destroyCam(cam2)
-        destroyCam(cam3)
-        RenderScriptCams(false, not skipped, 1000, true, false)
-
-        -- Deleta props temporários do contêiner
-        if containerProp and DoesEntityExist(containerProp) then DeleteObject(containerProp) end
-        if collisionProp and DoesEntityExist(collisionProp) then DeleteObject(collisionProp) end
-
-        -- Libera NPCs companheiros para vagarem e serem despawnados pelo engine
-        if npc1 and DoesEntityExist(npc1) then
-            SetPedAsNoLongerNeeded(npc1)
-        end
-        if npc2 and DoesEntityExist(npc2) then
-            SetPedAsNoLongerNeeded(npc2)
+        -- Exclui entidades temporárias criadas quando o jogador estiver distante
+        for _, ent in ipairs(leftovers) do
+            if DoesEntityExist(ent) then
+                CreateThread(function()
+                    while DoesEntityExist(ent) do
+                        local dist = #(GetEntityCoords(ent) - GetEntityCoords(PlayerPedId()))
+                        if dist > 35.0 then
+                            DeleteEntity(ent)
+                            break
+                        end
+                        Wait(1000)
+                    end
+                end)
+            end
         end
 
-        if streamHandle and W2F.Streaming and W2F.Streaming.Release then
-            W2F.Streaming.Release(streamHandle)
-        end
-
-        pcall(function() RemoveAnimDict(openDict) end)
-        pcall(function()
-            RemoveAnimDict('amb@code_human_cower@male@base')
-            RemoveAnimDict('amb@code_human_cower@male@scared')
-            RemoveAnimDict('amb@code_human_cower@male@exit')
-            RemoveAnimDict('amb@code_human_cower@female@base')
-            RemoveAnimDict('amb@code_human_cower@female@scared')
-            RemoveAnimDict('amb@code_human_cower@female@exit')
-        end)
-
-        -- Coordenadas de destino final firme no cais do porto
-        local exitDist = (cfg.exitOffset and cfg.exitOffset.y) or 5.0
-        local rad = math.rad(containerCoords.w or 0.0)
-        local fwdX = math.sin(rad)
-        local fwdY = -math.cos(rad)
-        local targetHeading = (containerCoords.w + 180.0) % 360.0
-        local targetCoords = vec4(containerCoords.x + (fwdX * exitDist), containerCoords.y + (fwdY * exitDist), containerCoords.z, targetHeading)
-
-        local okGround, safeZ = GetGroundZFor_3dCoord(targetCoords.x, targetCoords.y, targetCoords.z + 2.0, false)
-        if okGround and safeZ > 1.0 then
-            targetCoords = vec4(targetCoords.x, targetCoords.y, safeZ, targetHeading)
-        end
-
-        SetEntityCoords(ped, targetCoords.x, targetCoords.y, targetCoords.z, false, false, false, false)
-        SetEntityHeading(ped, targetCoords.w)
         FreezeEntityPosition(ped, false)
         SetEntityVisible(ped, true, false)
-        ClearPedTasks(ped)
+        SetEntityInvincible(ped, false)
 
-        -- Proteção temporária de invencibilidade pós-spawn contra glitches de física
-        SetTimeout(2500, function()
-            if DoesEntityExist(ped) then
-                SetEntityInvincible(ped, false)
-            end
-        end)
-
-        if skipped then
-            DoScreenFadeIn(500)
+        if IsScreenFadedOut() or IsScreenFadingOut() then
+            DoScreenFadeIn(600)
         end
 
-        dbg('[container] historia concluida com sucesso, entregando em %s %s %s', targetCoords.x, targetCoords.y, targetCoords.z)
+        dbg('[container] historia concluida, entregando em %s %s %s', spawn.x, spawn.y, spawn.z)
         if ctx and ctx.handBack then
-            ctx.handBack(targetCoords)
+            ctx.handBack(vec4(spawn.x, spawn.y, spawn.z, spawn.heading))
         end
     end)
 end
