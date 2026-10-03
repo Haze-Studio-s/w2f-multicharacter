@@ -147,12 +147,14 @@ local function saveAppearanceThenFinish(appearance, cc, gender, coords, heading)
             while not HasCollisionLoadedAroundEntity(ped) and GetGameTimer() < deadline do
                 Wait(50)
             end
-            SetEntityCoords(ped, finalCoords.x, finalCoords.y, finalCoords.z, false, false, false, false)
+            local foundGround, safeZ = GetGroundZFor_3dCoord(finalCoords.x, finalCoords.y, finalCoords.z + 2.0, false)
+            local actualZ = (foundGround and safeZ > 1.0) and safeZ or finalCoords.z
+            SetEntityCoords(ped, finalCoords.x, finalCoords.y, actualZ, false, false, false, false)
             SetEntityHeading(ped, finalCoords.w or 0.0)
             TriggerServerEvent('w2f-multicharacter:server:setSpawnPosition', {
                 x = finalCoords.x,
                 y = finalCoords.y,
-                z = finalCoords.z,
+                z = actualZ,
                 w = finalCoords.w or 0.0,
             })
         end

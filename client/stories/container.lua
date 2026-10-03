@@ -81,7 +81,7 @@ function W2F.Arrival.Container(ctx, spawnCoords)
     local cfg = (Config.Arrival or {}).container or {}
 
     -- Coordenadas do contêiner no cais do porto marítimo (Terminal / Elysian Island)
-    local containerCoords  = cfg.spawnCoords or vec4(428.34, -2992.08, 5.90, 185.0)
+    local containerCoords  = cfg.spawnCoords or vec4(428.34, -3005.00, 5.90, 180.0)
     local containerModel   = cfg.model       or 'tr_prop_tr_container_01a'
     local collisionModel   = cfg.collisionProp or 'prop_ld_container'
     local animDict         = cfg.animDict    or 'container@'
@@ -249,12 +249,22 @@ function W2F.Arrival.Container(ctx, spawnCoords)
         -- NUI: legenda 3
         W2F.SendNui('showArrivalSubtitle', { text = subtitles[3], durationMs = 3000 })
 
-        -- Ped sai do contêiner (aparece caminhando)
-        local exitCoords = cfg.exitOffset and vec3(
-            containerCoords.x + cfg.exitOffset.x,
-            containerCoords.y + cfg.exitOffset.y,
-            containerCoords.z + cfg.exitOffset.z
-        ) or vec3(containerCoords.x, containerCoords.y + 4.0, containerCoords.z)
+        -- Ped sai do contêiner (aparece caminhando para fora pelas portas abertas)
+        local exitCoords = nil
+        if containerProp and DoesEntityExist(containerProp) then
+            exitCoords = GetOffsetFromEntityInWorldCoords(containerProp, 0.0, (cfg.exitOffset and cfg.exitOffset.y) or 4.2, 0.0)
+        else
+            local rad = math.rad(containerCoords.w or 0.0)
+            local fwdX = -math.sin(rad)
+            local fwdY = math.cos(rad)
+            local dist = (cfg.exitOffset and cfg.exitOffset.y) or 4.2
+            exitCoords = vec3(containerCoords.x + (fwdX * dist), containerCoords.y + (fwdY * dist), containerCoords.z)
+        end
+
+        local okGround, safeZ = GetGroundZFor_3dCoord(exitCoords.x, exitCoords.y, exitCoords.z + 2.0, false)
+        if okGround and safeZ > 1.0 then
+            exitCoords = vec3(exitCoords.x, exitCoords.y, safeZ)
+        end
 
         SetEntityCoords(ped, insidePos.x, insidePos.y, insidePos.z, false, false, false, false)
         SetEntityHeading(ped, containerCoords.w)
@@ -264,12 +274,17 @@ function W2F.Arrival.Container(ctx, spawnCoords)
 
         Wait(3000)
 
-        -- 8. Câmera exterior final (porto de Los Santos)
-        local cam3FarPos = vec3(
-            containerCoords.x - 4.0,
-            containerCoords.y + 12.0,
-            containerCoords.z + 5.0
-        )
+        -- 8. Câmera exterior final (porto de Los Santos / cais plano)
+        local cam3FarPos = nil
+        if containerProp and DoesEntityExist(containerProp) then
+            cam3FarPos = GetOffsetFromEntityInWorldCoords(containerProp, -4.0, 12.0, 5.0)
+        else
+            local rad = math.rad(containerCoords.w or 0.0)
+            local fwdX = -math.sin(rad)
+            local fwdY = math.cos(rad)
+            cam3FarPos = vec3(containerCoords.x + (fwdX * 12.0) - 4.0, containerCoords.y + (fwdY * 12.0), containerCoords.z + 5.0)
+        end
+
         local cam3 = createLookAtCam(cam3FarPos, vec3(exitCoords.x, exitCoords.y, exitCoords.z + 1.0), 40.0)
         SetCamActiveWithInterp(cam3, cam2, 1200, 1, 1)
         Wait(1400)
@@ -301,12 +316,12 @@ function W2F.Arrival.Container(ctx, spawnCoords)
         W2F.SendNui('hideArrivalSubtitle', {})
         pcall(function() AnimpostfxStopAll() end)
 
-        -- Define coordenadas seguras de destino final
-        local targetCoords = spawnCoords or vec4(exitCoords.x, exitCoords.y, exitCoords.z, containerCoords.w or 0.0)
+        -- Define coordenadas seguras de destino final no asfalto do cais
+        local targetCoords = vec4(exitCoords.x, exitCoords.y, exitCoords.z, containerCoords.w or 0.0)
 
         dbg('[container] historia concluida, entregando para spawn em %s %s %s', targetCoords.x, targetCoords.y, targetCoords.z)
 
-        -- Teleporta para os coords de spawn reais
+        -- Teleporta para os coords de spawn reais com solo garantido
         SetEntityCoords(ped, targetCoords.x, targetCoords.y, targetCoords.z, false, false, false, false)
         SetEntityHeading(ped, targetCoords.w or 0.0)
         FreezeEntityPosition(ped, false)

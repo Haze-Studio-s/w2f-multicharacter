@@ -856,13 +856,13 @@ Config.Arrival = {
         collisionProp = 'prop_ld_container',
         --- Coordenadas de spawn do contêiner no porto marítimo (Cais do Porto / Terminal)
         --- (onde o contêiner aparece — o jogador sai andando para a frente em direção ao cais)
-        spawnCoords = vec4(428.34, -2992.08, 5.90, 185.0),
+        spawnCoords = vec4(428.34, -3005.00, 5.90, 180.0),
         --- Offset do interior do contêiner (onde o ped aparece inicialmente)
         interiorOffset = vec3(0.0, -2.0, 1.2),
         --- Offset de câmera exterior (plano das portas abrindo)
         exteriorOffset = vec3(0.0, 5.5, 2.0),
-        --- Offset de saída do ped após as portas abrirem
-        exitOffset = vec3(0.0, 4.0, 0.0),
+        --- Offset de saída do ped após as portas abrirem (coordenadas locais relativas à frente do prop)
+        exitOffset = vec3(0.0, 4.2, 0.0),
         --- Dict e clip da animação de abertura das portas
         animDict = 'container@',
         animClip = 'action_container',

@@ -413,10 +413,29 @@ local function giveStarterItems(source, arrivalId)
         local player = exports.qbx_core:GetPlayer(source)
         if player then
             if arrivalConfig.wipeCash then
+                pcall(function() player.Functions.SetMoney('cash', 0, 'arrival_story_setup') end)
                 pcall(function() exports.qbx_core:SetMoney(source, 'cash', 0, 'arrival_story_setup') end)
+                if GetResourceState('ox_inventory') == 'started' then
+                    pcall(function()
+                        local count = exports.ox_inventory:GetItem(source, 'money', nil, true) or 0
+                        if count > 0 then
+                            exports.ox_inventory:RemoveItem(source, 'money', count)
+                        end
+                    end)
+                end
             end
             if arrivalConfig.wipeBank then
+                pcall(function() player.Functions.SetMoney('bank', 0, 'arrival_story_setup') end)
                 pcall(function() exports.qbx_core:SetMoney(source, 'bank', 0, 'arrival_story_setup') end)
+                if GetResourceState('aust_banking') == 'started' then
+                    pcall(function()
+                        local cid = player.PlayerData.citizenid
+                        local curBal = exports['aust_banking']:GetBankBalance(cid) or exports['aust_banking']:GetBankBalance(source) or 0
+                        if curBal > 0 then
+                            exports['aust_banking']:RemoveBankMoney(cid, curBal, 'arrival_wipe_bank')
+                        end
+                    end)
+                end
             end
         end
     end
