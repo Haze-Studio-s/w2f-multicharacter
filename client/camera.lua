@@ -446,8 +446,15 @@ function W2F.Camera.UpdateOrbitMode()
             local currentYaw = W2F.Camera.smoothYaw or targetYaw
             local delta = targetYaw - currentYaw
             while delta > 180.0 do delta = delta - 360.0 end
-            while delta < -180.0 do delta = delta + 360.0 end
             W2F.Camera.smoothYaw = currentYaw + (delta * rs)
+        end
+
+        local fovRate = (W2F.Camera.mode == 'focused') and 4.2 or 3.0
+        local targetFovVal = W2F.Camera.targetFov or W2F.Camera.baseFov or 42.0
+        if W2F.Frame and W2F.Frame.Smooth then
+            W2F.Camera.currentFov = W2F.Frame.Smooth(W2F.Camera.currentFov or targetFovVal, targetFovVal, fovRate, dt)
+        else
+            W2F.Camera.currentFov = W2F.SmoothStep(W2F.Camera.currentFov or targetFovVal, targetFovVal, 0.08)
         end
 
         SetCamCoord(W2F.Camera.handle, curPos.x, curPos.y, curPos.z)
@@ -744,30 +751,50 @@ function W2F.Camera.FocusOnPed(ped, slot)
     local pedCoords = GetEntityCoords(ped)
     local heading = GetEntityHeading(ped)
 
-    local lookAt = vector3(pedCoords.x, pedCoords.y, pedCoords.z + 0.25)
+    local fixedPos = select(1, getOverviewCameraPose())
+    local dirX, dirY, sideX, sideY
+
+    if fixedPos then
+        local dx = fixedPos.x - pedCoords.x
+        local dy = fixedPos.y - pedCoords.y
+        local d = math.sqrt(dx * dx + dy * dy)
+        if d > 0.05 then
+            dirX = dx / d
+            dirY = dy / d
+            sideX = -dirY
+            sideY = dirX
+        end
+    end
+
+    if not dirX then
+        local rad = math.rad(heading)
+        dirX = -math.sin(rad)
+        dirY = math.cos(rad)
+        sideX = -math.cos(rad)
+        sideY = -math.sin(rad)
+    end
+
+    -- Posição frontal a meia distância (enquadramento meio-corpo no terço esquerdo da tela, livre do Dossier)
+    local camX = pedCoords.x + (dirX * 2.35) - (sideX * 0.08)
+    local camY = pedCoords.y + (dirY * 2.35) - (sideY * 0.08)
+    local camZ = pedCoords.z + 0.38
+
+    local lookAtX = pedCoords.x + (sideX * 0.40)
+    local lookAtY = pedCoords.y + (sideY * 0.40)
+    local lookAtZ = pedCoords.z + 0.20
+    local lookAt = vector3(lookAtX, lookAtY, lookAtZ)
+
     W2F.Camera.targetLookAt = lookAt
     W2F.Camera.focalTarget = lookAt
-
-    local rad = math.rad(heading)
-    local fwdX = -math.sin(rad)
-    local fwdY = math.cos(rad)
-    local rightX = math.cos(rad)
-    local rightY = math.sin(rad)
-
-    -- Posição frontal a meia distância (enquadramento meio-corpo/rosto estilo mri_Qmultichar)
-    local camX = pedCoords.x + (fwdX * 2.05) + (rightX * 0.22)
-    local camY = pedCoords.y + (fwdY * 2.05) + (rightY * 0.22)
-    local camZ = pedCoords.z + 0.35
-
     W2F.Camera.targetPos = vector3(camX, camY, camZ)
-    W2F.Camera.targetFov = 34.0
+    W2F.Camera.targetFov = 36.0
 
     pcall(function()
         TaskLookAtCoord(ped, camX, camY, camZ, -1, 2048, 3)
     end)
 
     if W2F.Camera.handle and DoesCamExist(W2F.Camera.handle) then
-        pcall(ShakeCam, W2F.Camera.handle, 'HAND_SHAKE', 0.08)
+        pcall(ShakeCam, W2F.Camera.handle, 'HAND_SHAKE', 0.05)
     end
 end
 
@@ -779,21 +806,41 @@ function W2F.Camera.FocusOnEmptySlot(slot)
     local slotCfg = Config.Scene.pedSlots[slot]
     local coords = slotCfg and (slotCfg.coords or slotCfg)
     if coords then
-        local lookAt = vector3(coords.x, coords.y, coords.z + 0.3)
+        local fixedPos = select(1, getOverviewCameraPose())
+        local dirX, dirY, sideX, sideY
+
+        if fixedPos then
+            local dx = fixedPos.x - coords.x
+            local dy = fixedPos.y - coords.y
+            local d = math.sqrt(dx * dx + dy * dy)
+            if d > 0.05 then
+                dirX = dx / d
+                dirY = dy / d
+                sideX = -dirY
+                sideY = dirX
+            end
+        end
+
+        if not dirX then
+            local heading = coords.w or 0.0
+            local rad = math.rad(heading)
+            dirX = -math.sin(rad)
+            dirY = math.cos(rad)
+            sideX = -math.cos(rad)
+            sideY = -math.sin(rad)
+        end
+
+        local camX = coords.x + (dirX * 2.45) - (sideX * 0.08)
+        local camY = coords.y + (dirY * 2.45) - (sideY * 0.08)
+        local camZ = coords.z + 0.40
+
+        local lookAtX = coords.x + (sideX * 0.40)
+        local lookAtY = coords.y + (sideY * 0.40)
+        local lookAtZ = coords.z + 0.20
+        local lookAt = vector3(lookAtX, lookAtY, lookAtZ)
+
         W2F.Camera.targetLookAt = lookAt
         W2F.Camera.focalTarget = lookAt
-
-        local heading = coords.w or 0.0
-        local rad = math.rad(heading)
-        local fwdX = -math.sin(rad)
-        local fwdY = math.cos(rad)
-        local rightX = math.cos(rad)
-        local rightY = math.sin(rad)
-
-        local camX = coords.x + (fwdX * 2.2) + (rightX * 0.2)
-        local camY = coords.y + (fwdY * 2.2) + (rightY * 0.2)
-        local camZ = coords.z + 0.4
-
         W2F.Camera.targetPos = vector3(camX, camY, camZ)
         W2F.Camera.targetFov = 38.0
     end

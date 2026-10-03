@@ -901,30 +901,65 @@ window.addEventListener('click', (e) => {
  * Keyboard Management
  * ============================================================ */
 document.addEventListener('keydown', (e) => {
-    if (state.skyMode || state.spawnBusy) {
-        if (state.skyMode && e.key === 'Escape' && !state.spawnBusy) {
-            post('cancelSkySpawn');
+    // Interceptar Escape SEMPRE com preventDefault/stopPropagation para nunca abrir o menu de pausa nativo do GTA V
+    if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (state.skyMode || state.spawnBusy) {
+            if (state.skyMode && !state.spawnBusy) {
+                post('cancelSkySpawn');
+            }
+            return;
+        }
+        if (state.confirmOpen) {
+            if (!state.confirmBusy) {
+                closeConfirmDelete();
+            }
+            return;
+        }
+        if (state.createOpen) {
+            if (!state.createBusy) {
+                post('cancelCreateCharacter');
+                closeCreatePanel();
+            }
+            return;
+        }
+        if (state.selectedSlot !== null) {
+            post('cancelDetails');
+            return;
         }
         return;
     }
+
+    // Se o usuário estiver digitando em campos de formulário, não acionar atalhos de navegação
+    const activeEl = document.activeElement;
+    const isTyping = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT');
+    if (isTyping) {
+        if (e.key === 'Enter' && state.confirmOpen && !state.confirmBusy && !dom.confirmDeleteBtn.disabled) {
+            e.preventDefault();
+            dom.confirmDeleteBtn.click();
+        }
+        return;
+    }
+
+    if (state.skyMode || state.spawnBusy) {
+        return;
+    }
     if (state.confirmOpen) {
-        if (e.key === 'Escape' && !state.confirmBusy) {
-            closeConfirmDelete();
-        } else if (e.key === 'Enter' && !state.confirmBusy && !dom.confirmDeleteBtn.disabled) {
+        if (e.key === 'Enter' && !state.confirmBusy && !dom.confirmDeleteBtn.disabled) {
+            e.preventDefault();
             dom.confirmDeleteBtn.click();
         }
         return;
     }
     if (state.createOpen) {
-        if (e.key === 'Escape' && !state.createBusy) {
-            post('cancelCreateCharacter');
-            closeCreatePanel();
-        }
         return;
     }
 
     // Atalhos numéricos (1, 2, 3, 4, 5) para selecionar slots diretamente
     if (['1', '2', '3', '4', '5'].includes(e.key)) {
+        e.preventDefault();
         const slot = Number(e.key);
         if (slot <= (state.maxSlots || 3)) {
             const char = state.characters[slot];
@@ -939,33 +974,37 @@ document.addEventListener('keydown', (e) => {
 
     // Navegação por setas ou A/D para alternar entre slots
     if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+        e.preventDefault();
         post('navigateSlot', { direction: 1 });
         return;
     }
 
     if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+        e.preventDefault();
         post('navigateSlot', { direction: -1 });
         return;
     }
 
     // W ou Seta Cima -> Confirmar Entrada ou Criar
     if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+        e.preventDefault();
         post('confirmSlot');
         return;
     }
 
     // S ou Seta Baixo -> Cancelar / Voltar para Overview geral
     if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
+        e.preventDefault();
         post('cancelDetails');
         return;
     }
 
-    // Ações de confirmação, cancelamento e exclusão
-    if (e.key === 'Escape' && state.selectedSlot !== null) {
-        post('cancelDetails');
-    } else if (e.key === 'Enter') {
+    // Ações de confirmação e exclusão
+    if (e.key === 'Enter') {
+        e.preventDefault();
         post('confirmSlot');
     } else if ((e.key === 'Delete' || e.key === 'Del') && state.selectedSlot !== null) {
+        e.preventDefault();
         openConfirmDelete();
     }
 });

@@ -225,14 +225,17 @@ function W2F.Interaction.DisableControls()
     --- Prevent pause / map / phone / chat / inventory / scoreboard shortcuts.
     --- 245/246/247/248 cover all four chat input controls (all/team/private/reply).
     local blocked = {
-        199, 200, 243, 244, 245, 246, 247, 248, 249,
-        288, 289, 311, 322, 323, 167, 168, 169, 170,
+        199, 200, 202, 243, 244, 245, 246, 247, 248, 249,
+        288, 289, 311, 322, 323, 167, 168, 169, 170, 177, 300,
     }
     for i = 1, #blocked do
         DisableControlAction(pad, blocked[i], true)
     end
 
     SetPauseMenuActive(false)
+    if IsPauseMenuActive() then
+        SetFrontendActive(false)
+    end
     --- Suppress chat resource even when it tries to open via key-mapped /t.
     suppressChat()
 
