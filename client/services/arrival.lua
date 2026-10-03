@@ -106,12 +106,14 @@ function W2F.Arrival.Play(meta, spawnCoords, onDone)
     if not finalSpawnCoords then
         if arrivalId == 'container' then
             local contCfg = cfg.container or {}
-            local contCoords = contCfg.spawnCoords or vec4(428.34, -3005.00, 5.90, 180.0)
+            local contCoords = contCfg.spawnCoords or vec4(520.39, -2935.94, 6.04, 180.0)
+            -- As portas do modelo tr_prop_tr_container_01a abrem em -Y local
+            -- Com heading 180.0, -Y aponta para o Norte (+Y global), em direção ao pátio do cais
             local rad = math.rad(contCoords.w or 0.0)
-            local fwdX = -math.sin(rad)
-            local fwdY = math.cos(rad)
-            local dist = (contCfg.exitOffset and contCfg.exitOffset.y) or 4.2
-            finalSpawnCoords = vec4(contCoords.x + (fwdX * dist), contCoords.y + (fwdY * dist), contCoords.z, contCoords.w)
+            local fwdX = math.sin(rad)
+            local fwdY = -math.cos(rad)
+            local dist = (contCfg.exitOffset and contCfg.exitOffset.y) or 5.0
+            finalSpawnCoords = vec4(contCoords.x + (fwdX * dist), contCoords.y + (fwdY * dist), contCoords.z, (contCoords.w + 180.0) % 360.0)
         elseif arrivalId == 'plane' then
             finalSpawnCoords = cfg.planeSpawnCoords or vec4(-1037.0, -2737.0, 13.8, 330.0)
         elseif arrivalId == 'prison' then

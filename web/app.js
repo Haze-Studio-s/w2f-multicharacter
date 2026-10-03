@@ -778,7 +778,7 @@ const handlers = {
                     clearInterval(window._mriTypewriterInterval);
                     window._mriTypewriterInterval = null;
                 }
-            }, 65);
+            }, 24);
         }
 
         setTimeout(() => {
@@ -845,6 +845,28 @@ const handlers = {
     hideArrivalSkip: () => {
         const el = document.getElementById('skipArrivalPrompt');
         if (el) el.classList.add('hidden');
+    },
+
+    /* ---- Story Loading: Overlay de carga (âncora + motor diesel) ---- */
+    showStoryLoading: (data) => {
+        const el = document.getElementById('storyLoadingOverlay');
+        const txt = document.getElementById('storyLoadingText');
+        if (!el) return;
+        if (txt && data?.text) txt.textContent = data.text;
+        el.classList.remove('hidden');
+    },
+
+    hideStoryLoading: () => {
+        const el = document.getElementById('storyLoadingOverlay');
+        if (el) {
+            el.style.opacity = '0';
+            el.style.transition = 'opacity 0.5s ease';
+            setTimeout(() => {
+                el.classList.add('hidden');
+                el.style.opacity = '';
+                el.style.transition = '';
+            }, 500);
+        }
     },
 };
 

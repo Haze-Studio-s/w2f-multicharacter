@@ -1340,3 +1340,66 @@ html, body {
 }
 
 }
+
+/* =====================================================
+   STORY LOADING OVERLAY
+   Exibido durante a carga de assets da cinemática
+===================================================== */
+.story-loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    animation: storyFadeIn 0.4s ease;
+}
+.story-loading-overlay.hidden {
+    display: none;
+}
+.story-loading-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+}
+.story-loading-icon {
+    font-size: 3.2rem;
+    opacity: 0.85;
+    animation: anchorPulse 2.2s ease-in-out infinite;
+}
+.story-loading-text {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.55);
+}
+.story-loading-dots {
+    display: flex;
+    gap: 8px;
+}
+.story-loading-dots span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.35);
+    animation: dotPulse 1.4s ease-in-out infinite;
+}
+.story-loading-dots span:nth-child(2) { animation-delay: 0.22s; }
+.story-loading-dots span:nth-child(3) { animation-delay: 0.44s; }
+
+@keyframes storyFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+@keyframes anchorPulse {
+    0%, 100% { transform: translateY(0px); opacity: 0.85; }
+    50%       { transform: translateY(-6px); opacity: 0.55; }
+}
+@keyframes dotPulse {
+    0%, 100% { opacity: 0.35; transform: scale(1); }
+    50%       { opacity: 1;    transform: scale(1.3); }
+}

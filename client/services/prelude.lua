@@ -55,8 +55,8 @@ function W2F.Prelude.Play(charData, onDone)
         return
     end
 
-    local freezeMs     = cfg.freezeDurationMs     or 3500
-    local chapterMs    = cfg.chapterCardDurationMs or 3000
+    local freezeMs     = cfg.freezeDurationMs     or 1500
+    local chapterMs    = cfg.chapterCardDurationMs or 1400
     local timeScaleVal = cfg.timeScale             or 0.1
 
     charData = charData or {}

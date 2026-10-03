@@ -397,6 +397,20 @@
         <span class="skip-label">PULAR</span>
     </div>
 
+    <!-- =====================================================
+         STORY LOADING: Overlay durante carga de assets
+         Ativado via NUI action 'showStoryLoading' / 'hideStoryLoading'
+    ===================================================== -->
+    <div id="storyLoadingOverlay" class="story-loading-overlay hidden">
+        <div class="story-loading-content">
+            <div class="story-loading-icon">⚓</div>
+            <div class="story-loading-text" id="storyLoadingText">Preparando embarque...</div>
+            <div class="story-loading-dots">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+    </div>
+
     <script src="app.js"></script>
 </body>
 </html>

@@ -833,10 +833,10 @@ Config.Prelude = {
     enabled = true,
     --- Velocidade do mundo durante o freeze (0.1 = quase parado).
     timeScale = 0.1,
-    --- Duração do cartão do personagem em millisegundos.
-    freezeDurationMs = 3500,
+    --- Duração do cartão do personagem em millisegundos (ágil e impactante).
+    freezeDurationMs = 1500,
     --- Duração do cartão de capítulo em millisegundos.
-    chapterCardDurationMs = 3000,
+    chapterCardDurationMs = 1400,
 }
 
 --- Sistema de Histórias de Chegada
@@ -852,22 +852,42 @@ Config.Arrival = {
     container = {
         --- Modelo do contêiner animado (prop do DLC Tuners)
         model = 'tr_prop_tr_container_01a',
-        --- Prop de colisão física (invisível; assume a colisão quando anim começa)
+        --- Prop de colisão física invisível (prop_ld_container)
         collisionProp = 'prop_ld_container',
-        --- Coordenadas de spawn do contêiner no porto marítimo (Cais do Porto / Terminal)
-        --- (onde o contêiner aparece — o jogador sai andando para a frente em direção ao cais)
-        spawnCoords = vec4(428.34, -3005.00, 5.90, 180.0),
-        --- Offset do interior do contêiner (onde o ped aparece inicialmente)
-        interiorOffset = vec3(0.0, -2.0, 1.2),
-        --- Offset de câmera exterior (plano das portas abrindo)
-        exteriorOffset = vec3(0.0, 5.5, 2.0),
-        --- Offset de saída do ped após as portas abrirem (coordenadas locais relativas à frente do prop)
-        exitOffset = vec3(0.0, 4.2, 0.0),
-        --- Dict e clip da animação de abertura das portas
-        animDict = 'container@',
-        animClip = 'action_container',
-        --- Delay em ms até as portas abrindo (dentro da animação)
-        openPhaseDelayMs = 1800,
+        --- Coordenadas de spawn do contêiner no cais asfaltado do porto (Terminal / Pátio de Carga)
+        --- (Portas abrem em direção ao norte/pátio, totalmente afastadas da água)
+        spawnCoords = vec4(520.39, -2935.94, 6.04, 180.0),
+        --- Offset do interior do contêiner (fundo onde os clandestinos ficam sentados)
+        interiorOffset = vec3(0.0, 1.8, 0.22),
+        --- Offset de câmera exterior (plano frontal das portas abrindo para fora)
+        exteriorOffset = vec3(0.0, -7.2, 1.45),
+        --- Distância de saída do ped após as portas abrirem
+        exitOffset = vec3(0.0, 5.0, 0.0),
+        --- Dict e clip da animação de abertura das portas (DLC Tuners trem ig1)
+        openDict = 'anim@scripted@player@mission@tunf_train_ig1_container_p1@male@',
+        openAnim = 'action_container',
+        openPhase = 0.66,
+        doorAxis = -1,
+        doorOpenMs = 1000,
+        darkness = 'int_extlight_none_dark',
+        migrants = { 'a_m_m_mexlabor_01', 'a_m_y_mexthug_01', 'a_m_m_soucent_01' },
+        beats = { dark = 2000, impact = 1600, open = 2000, out = 3500 },
+        sounds = {
+            banks = {
+                script = { 'DLC_HEI4/DLC_HEI4_Submarine', 'Container_Lifter', 'DLC_APARTMENT/APT_Yacht_01' },
+                ambient = { 'Crane', 'Crane_Impact_Sweeteners', 'Crane_Stress', 'CREAK_V1' },
+            },
+            creakLoop = { 'Creaking_Loop', 'DLC_H4_Submarine_Crush_Depth_Sounds' },
+            creaks = { { 'CREAK_01', 'DOCKS_HEIST_SETUP_SOUNDS' }, { 'Strain', 'CRANE_SOUNDS' } },
+            horn = { 'HORN', 'DLC_Apt_Yacht_Ambient_Soundset' },
+            impact = {
+                { 'Container_Impact_Land', 'CRANE_SOUNDS' },
+                { 'Container_Land', 'CONTAINER_LIFTER_SOUNDS' },
+            },
+            door = { 'container_door', 'dlc_prison_break_heist_sounds' },
+            flash = { 'SCREEN_FLASH', 'CELEBRATION_SOUNDSET' },
+            gulls = { 'Seagulls', 'JEWEL_HEIST_SOUNDS' },
+        },
     },
 
     --- Coordenadas de posição segura para cutscene do avião (calçada externa LSIA)
