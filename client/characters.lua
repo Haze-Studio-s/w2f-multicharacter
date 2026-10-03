@@ -1001,6 +1001,7 @@ function W2F.Characters.DeleteSelected()
     --- Wipe local caches for this character so a refresh doesn't re-spawn it.
     W2F.State.modelCache[citizenid] = nil
     W2F.State.appearanceCache[citizenid] = nil
+    W2F.State.isModalOpen = false
 
     W2F.Characters.ClearSelection()
     W2F.SendNui('characterDeleted', { citizenid = citizenid })
@@ -1009,6 +1010,27 @@ function W2F.Characters.DeleteSelected()
     W2F.Characters.ClearPreviewPeds()
     local characters = W2F.Qbox.FetchCharacters()
     W2F.Characters.BuildLineup(characters)
+
+    --- Seleciona automaticamente o próximo personagem existente (conforme alinhamento do Grill-Me)
+    CreateThread(function()
+        Wait(150)
+        local nextSlot, nextEntry = nil, nil
+        local maxVisual = #Config.Scene.pedSlots or 3
+        for i = 1, maxVisual do
+            local entry = W2F.State.previewPeds[i]
+            if entry and entry.character and not entry.isEmpty then
+                nextSlot = i
+                nextEntry = entry
+                break
+            end
+        end
+
+        if nextSlot and nextEntry then
+            W2F.Characters.SelectSlot(nextSlot, nextEntry, true)
+        else
+            W2F.Characters.SelectEmptySlot(1)
+        end
+    end)
 
     lib.notify({
         title = 'Character Deleted',

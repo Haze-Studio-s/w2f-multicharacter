@@ -239,8 +239,8 @@ function W2F.Interaction.DisableControls()
     --- Suppress chat resource even when it tries to open via key-mapped /t.
     suppressChat()
 
-    if W2F.State.isCreatePanelOpen then
-        --- Registration form: NUI only (no ped raycasts / camera drag).
+    if W2F.State.isCreatePanelOpen or W2F.State.isModalOpen then
+        --- Registration form or confirmation modal: NUI only (no ped raycasts / camera drag / game controls).
         return
     end
 
@@ -255,7 +255,7 @@ end
 
 function W2F.Interaction.UpdateKeyboardNavigation()
     if LocalPlayer.state.whitelist_dialog_open then return end
-    if W2F.State.isCreatePanelOpen or W2F.State.isCreatingCharacter then return end
+    if W2F.State.isModalOpen or W2F.State.isCreatePanelOpen or W2F.State.isCreatingCharacter then return end
     if W2F.State.isIntroPlaying or W2F.State.isDraggingCamera then return end
     if not W2F.Session.Is('selection') then return end
 
@@ -376,7 +376,7 @@ function W2F.Interaction.StartLoop()
 end
 
 RegisterNUICallback('clickWorld', function(data, cb)
-    if W2F.State.isCreatePanelOpen or W2F.State.isCreatingCharacter then
+    if W2F.State.isModalOpen or W2F.State.isCreatePanelOpen or W2F.State.isCreatingCharacter then
         cb('ok')
         return
     end
@@ -493,12 +493,27 @@ RegisterNUICallback('navigateSlot', function(data, cb)
 end)
 
 RegisterNUICallback('confirmSlot', function(_, cb)
-    if W2F.State.isCreatePanelOpen or W2F.State.isCreatingCharacter then
+    if W2F.State.isModalOpen or W2F.State.isCreatePanelOpen or W2F.State.isCreatingCharacter then
         cb('ok')
         return
     end
     if W2F.Characters and W2F.Characters.ConfirmCurrentSlot then
         W2F.Characters.ConfirmCurrentSlot()
+    end
+    cb('ok')
+end)
+
+RegisterNUICallback('setModalState', function(data, cb)
+    local isOpen = data and data.open == true
+    W2F.State.isModalOpen = isOpen
+    if isOpen then
+        --- Foco estrito: CEF consome 100% de teclado e mouse; nada passa para o GTA V
+        W2F.SetSelectionFocus(true, false)
+    else
+        if W2F.Session.Is('selection') and not W2F.State.isCreatePanelOpen then
+            --- Restaura o modo padrão permitindo orbitar câmera com mouse
+            W2F.SetSelectionFocus(true, true)
+        end
     end
     cb('ok')
 end)

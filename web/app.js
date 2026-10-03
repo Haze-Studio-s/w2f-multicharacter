@@ -287,6 +287,7 @@ function openConfirmDelete() {
     dom.confirmDeleteBtn.disabled = true;
     dom.confirmName.textContent = name;
     setVisible(dom.confirmDelete, true);
+    post('setModalState', { open: true });
     setTimeout(() => dom.confirmInput.focus(), 50);
 }
 
@@ -297,6 +298,7 @@ function closeConfirmDelete() {
     setVisible(dom.confirmDelete, false);
     dom.confirmInput.value = '';
     dom.confirmDeleteBtn.disabled = true;
+    post('setModalState', { open: false });
     if (state.lastFocus && document.contains(state.lastFocus)) {
         try { state.lastFocus.focus(); } catch (_) {}
     }
@@ -361,6 +363,7 @@ function openCreatePanel(data) {
     setVisible(dom.hint, false);
     setVisible(dom.dossierPanel, false);
     setVisible(dom.createPanel, true);
+    post('setModalState', { open: true });
 
     setTimeout(() => {
         document.getElementById('createFirst')?.focus();
@@ -378,6 +381,7 @@ function closeCreatePanel(restoreHints) {
         setVisible(dom.createPanel, false);
     }
     showCreateError('');
+    post('setModalState', { open: false });
     if (restoreHints !== false && state.selectionActive && !state.skyMode) {
         setVisible(dom.hint, true);
     }
@@ -574,6 +578,14 @@ const handlers = {
         }
         state.characters = map;
         state.maxSlots = data?.maxSlots || state.maxSlots || 3;
+        if (!state.selectedSlot) {
+            for (let i = 1; i <= state.maxSlots; i++) {
+                if (state.characters[i] && !state.characters[i].isEmpty) {
+                    state.selectedSlot = i;
+                    break;
+                }
+            }
+        }
         if (state.selectedSlot && state.characters[state.selectedSlot] && !state.characters[state.selectedSlot].isEmpty && !state.createOpen) {
             showDossier(state.characters[state.selectedSlot]);
         }
